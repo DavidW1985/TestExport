@@ -113,16 +113,21 @@ Return your response as JSON with this structure:
 {
   "questions": [
     {
-      "question": "Specific question to ask the user",
+      "question": "Clear, direct question (keep it simple and specific)",
       "category": "Which category this question helps fill",
-      "reason": "Why this question is important for emigration planning"
+      "reason": "Brief reason (1 sentence max)"
     }
   ],
   "isComplete": boolean (true if you have enough information for basic emigration planning),
-  "reasoning": "Explanation of your assessment and what's still needed"
+  "reasoning": "Brief explanation of assessment (2-3 sentences max)"
 }
 
-Prioritize the most critical missing information first. Questions should be clear, specific, and actionable.`;
+Requirements for questions:
+- Use simple, everyday language
+- Ask one thing at a time
+- Keep questions under 15 words when possible
+- Focus on the most critical gaps only
+- Make questions actionable and specific`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
