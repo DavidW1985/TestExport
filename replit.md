@@ -1,0 +1,70 @@
+# Emigration Assessment Platform
+
+## Overview
+
+This is a React-based web application that provides expert emigration assessment services. The platform allows users to submit a detailed assessment form about their emigration plans and receive professional feedback from certified immigration experts. The application features a modern, responsive design with a comprehensive form that collects information about destination, companions, income, housing, timing, and priorities for emigration planning.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend Architecture
+The client-side application is built with React 18 and TypeScript, using a modern component-based architecture. The UI leverages shadcn/ui components with Radix UI primitives for accessibility and consistent design patterns. The application uses Wouter for lightweight client-side routing and TanStack Query for efficient server state management and API interactions.
+
+**Key Design Decisions:**
+- **React Hook Form with Zod validation**: Provides robust form handling with schema-based validation for the assessment form
+- **Tailwind CSS with CSS variables**: Enables consistent theming and responsive design across all components
+- **Component composition pattern**: Uses Radix UI primitives wrapped in custom components for maximum flexibility and reusability
+
+### Backend Architecture
+The server follows a RESTful API design using Express.js with TypeScript. The architecture separates concerns through a clean service layer pattern with dedicated modules for routing, storage abstraction, and business logic.
+
+**Key Design Decisions:**
+- **Express.js with TypeScript**: Provides type safety and modern JavaScript features for the server
+- **Storage abstraction layer**: Uses an interface-based approach that currently implements in-memory storage but can easily be swapped for database persistence
+- **Middleware-first approach**: Implements logging, error handling, and request parsing through Express middleware
+
+### Data Management
+The application uses Drizzle ORM for database schema definition and management, configured for PostgreSQL. The schema is shared between client and server for type consistency, with Zod schemas providing runtime validation.
+
+**Key Design Decisions:**
+- **Shared schema approach**: Database schema and validation schemas are co-located in a shared directory for consistency
+- **Drizzle ORM**: Provides type-safe database queries and migrations with excellent TypeScript integration
+- **Zod validation**: Ensures data integrity at both API boundaries and form submission
+
+### Development Environment
+The project uses Vite for fast development builds and hot module replacement. The monorepo structure keeps related code together while maintaining clear separation of concerns between client, server, and shared modules.
+
+**Key Design Decisions:**
+- **Vite build system**: Optimizes development experience with fast HMR and efficient production builds
+- **Monorepo structure**: Enables code sharing while maintaining clear module boundaries
+- **TypeScript throughout**: Provides end-to-end type safety from database to UI components
+
+## External Dependencies
+
+### UI Framework
+- **React 18**: Core frontend framework with modern hooks and concurrent features
+- **Radix UI**: Accessible, unstyled UI primitives for building the component system
+- **shadcn/ui**: Pre-built component library built on Radix UI with consistent design patterns
+
+### Styling and Design
+- **Tailwind CSS**: Utility-first CSS framework for rapid UI development
+- **Lucide React**: Consistent icon library with extensive icon coverage
+- **class-variance-authority**: Type-safe component variant management
+
+### Data and State Management
+- **TanStack Query (React Query)**: Server state management with caching, background updates, and error handling
+- **React Hook Form**: Performant form library with minimal re-renders
+- **Zod**: Schema validation library for runtime type checking
+
+### Server Infrastructure
+- **Express.js**: Web application framework for Node.js
+- **Drizzle ORM**: Type-safe ORM for database operations and schema management
+- **Neon Database**: Serverless PostgreSQL database service
+
+### Development Tools
+- **Vite**: Fast build tool and development server
+- **TypeScript**: Static type checking and enhanced developer experience
+- **ESBuild**: Fast JavaScript bundler for production builds
