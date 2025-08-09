@@ -204,39 +204,59 @@ export default function AdminPage() {
                     
                     <TabsContent value="prompts" className="space-y-6 mt-6">
                       <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="systemPrompt" className="text-base font-medium">
-                            System Prompt
-                          </Label>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            Sets the AI's role and behavior for this task
-                          </p>
-                          <Textarea
-                            id="systemPrompt"
-                            value={editedPrompt.systemPrompt}
-                            onChange={(e) => setEditedPrompt({ ...editedPrompt, systemPrompt: e.target.value })}
-                            rows={4}
-                            className="font-mono text-sm"
-                            data-testid="textarea-system-prompt"
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="userPrompt" className="text-base font-medium">
-                            User Prompt Template
-                          </Label>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            The main instruction template with variables like {`{{destination}}`}
-                          </p>
-                          <Textarea
-                            id="userPrompt"
-                            value={editedPrompt.userPrompt}
-                            onChange={(e) => setEditedPrompt({ ...editedPrompt, userPrompt: e.target.value })}
-                            rows={20}
-                            className="font-mono text-sm"
-                            data-testid="textarea-user-prompt"
-                          />
-                        </div>
+                        {/* Show different content based on prompt type */}
+                        {editedPrompt.id === 'systemPrompt' ? (
+                          <div>
+                            <Label htmlFor="systemPromptContent" className="text-base font-medium">
+                              Global System Prompt
+                            </Label>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              The unified system prompt used across all Clarity modes
+                            </p>
+                            <Textarea
+                              id="systemPromptContent"
+                              value={editedPrompt.userPrompt}
+                              onChange={(e) => setEditedPrompt({ ...editedPrompt, userPrompt: e.target.value })}
+                              rows={15}
+                              className="font-mono text-sm"
+                              data-testid="textarea-system-prompt-content"
+                            />
+                          </div>
+                        ) : editedPrompt.id === 'globalPrompt' ? (
+                          <div>
+                            <Label htmlFor="globalPromptContent" className="text-base font-medium">
+                              Global Prompt Template
+                            </Label>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              Template variables and rules that can be referenced by mode-specific prompts
+                            </p>
+                            <Textarea
+                              id="globalPromptContent"
+                              value={editedPrompt.userPrompt}
+                              onChange={(e) => setEditedPrompt({ ...editedPrompt, userPrompt: e.target.value })}
+                              rows={20}
+                              className="font-mono text-sm"
+                              data-testid="textarea-global-prompt-content"
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            <Label htmlFor="userPrompt" className="text-base font-medium">
+                              User Prompt Template
+                            </Label>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              The specific instruction template for this mode with variables like {`{{destination}}`}
+                            </p>
+                            <Textarea
+                              id="userPrompt"
+                              value={editedPrompt.userPrompt}
+                              onChange={(e) => setEditedPrompt({ ...editedPrompt, userPrompt: e.target.value })}
+                              rows={20}
+                              className="font-mono text-sm"
+                              data-testid="textarea-user-prompt"
+                            />
+                          </div>
+                        )}
                       </div>
                     </TabsContent>
 
