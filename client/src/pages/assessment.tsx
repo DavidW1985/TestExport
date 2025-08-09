@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { insertAssessmentSchema, type InsertAssessment } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +32,7 @@ import {
 
 export default function Assessment() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [formProgress, setFormProgress] = useState(33);
   
   const form = useForm<InsertAssessment>({
@@ -42,8 +44,6 @@ export default function Assessment() {
       housing: "",
       timing: "",
       priority: "",
-      email: "",
-      fullName: "",
     },
   });
 
@@ -53,11 +53,31 @@ export default function Assessment() {
       return response.json();
     },
     onSuccess: (data) => {
-      toast({
-        title: "Assessment Submitted!",
-        description: data.message,
-      });
-      form.reset();
+      if (data.isComplete) {
+        // Assessment is complete without follow-up questions
+        sessionStorage.setItem('completedAssessment', JSON.stringify(data));
+        setLocation('/summary');
+        toast({
+          title: "Assessment Complete!",
+          description: "Your emigration assessment has been processed successfully.",
+        });
+      } else {
+        // Store assessment state and redirect to follow-up questions
+        const assessmentState = {
+          assessmentId: data.assessmentId,
+          categorizedData: data.categorizedData,
+          followUpQuestions: data.followUpQuestions,
+          isComplete: data.isComplete,
+          reasoning: data.reasoning,
+          currentRound: 1
+        };
+        sessionStorage.setItem('assessmentState', JSON.stringify(assessmentState));
+        setLocation('/follow-up');
+        toast({
+          title: "Assessment Processed!",
+          description: `We have ${data.followUpQuestions.length} follow-up questions to better understand your needs.`,
+        });
+      }
     },
     onError: (error: any) => {
       toast({
