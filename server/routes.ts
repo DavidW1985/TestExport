@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAssessmentSchema } from "@shared/schema";
 import { categorizeAssessment, generateFollowUpQuestions, updateCategoriesWithFollowUp } from "./llm";
+import { PromptManager, type PromptConfig } from "./prompts";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -164,6 +165,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         message: "Something went wrong processing your follow-up answers. Please try again."
       });
+    }
+  });
+
+  // Prompt management endpoints
+  app.get("/api/prompts", (req, res) => {
+    try {
+      const prompts = PromptManager.getAllPrompts();
+      res.json({ success: true, prompts });
+    } catch (error) {
+      console.error("Get prompts error:", error);
+      res.status(500).json({ success: false, message: "Failed to retrieve prompts" });
+    }
+  });
+
+  app.get("/api/prompts/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const prompt = PromptManager.getPrompt(id);
+      
+      if (!prompt) {
+        return res.status(404).json({ success: false, message: "Prompt not found" });
+      }
+      
+      res.json({ success: true, prompt });
+    } catch (error) {
+      console.error("Get prompt error:", error);
+      res.status(500).json({ success: false, message: "Failed to retrieve prompt" });
+    }
+  });
+
+  app.put("/api/prompts/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      // Validate required fields
+      const updateSchema = z.object({
+        name: z.string().optional(),
+        description: z.string().optional(),
+        systemPrompt: z.string().optional(),
+        userPrompt: z.string().optional(),
+        temperature: z.number().min(0).max(2).optional(),
+        maxTokens: z.number().min(1).max(4000).optional()
+      });
+      
+      const validatedUpdates = updateSchema.parse(updates);
+      const updatedPrompt = PromptManager.updatePrompt(id, validatedUpdates);
+      
+      res.json({ 
+        success: true, 
+        message: "Prompt updated successfully",
+        prompt: updatedPrompt 
+      });
+    } catch (error) {
+      console.error("Update prompt error:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid prompt data",
+          errors: error.errors
+        });
+      } else {
+        res.status(500).json({ success: false, message: "Failed to update prompt" });
+      }
+    }
+  });
+
+  app.post("/api/prompts", (req, res) => {
+    try {
+      const promptData = req.body;
+      
+      const promptSchema = z.object({
+        id: z.string(),
+        name: z.string(),
+        description: z.string(),
+        systemPrompt: z.string(),
+        userPrompt: z.string(),
+        temperature: z.number().min(0).max(2).default(0.3),
+        maxTokens: z.number().min(1).max(4000).default(1500)
+      });
+      
+      const validatedPrompt = promptSchema.parse(promptData);
+      const newPrompt = PromptManager.createPrompt(validatedPrompt);
+      
+      res.status(201).json({ 
+        success: true, 
+        message: "Prompt created successfully",
+        prompt: newPrompt 
+      });
+    } catch (error) {
+      console.error("Create prompt error:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid prompt data",
+          errors: error.errors
+        });
+      } else {
+        res.status(500).json({ success: false, message: "Failed to create prompt" });
+      }
+    }
+  });
+
+  app.delete("/api/prompts/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = PromptManager.deletePrompt(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: "Prompt not found" });
+      }
+      
+      res.json({ success: true, message: "Prompt deleted successfully" });
+    } catch (error) {
+      console.error("Delete prompt error:", error);
+      res.status(500).json({ success: false, message: "Failed to delete prompt" });
     }
   });
 

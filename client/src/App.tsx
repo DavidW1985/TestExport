@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Assessment from "@/pages/assessment";
 import FollowUpPage from "@/pages/follow-up";
 import SummaryPage from "@/pages/summary";
+import AdminPage from "@/pages/admin";
 
 function Router() {
   return (
@@ -14,6 +15,7 @@ function Router() {
       <Route path="/" component={Assessment} />
       <Route path="/follow-up" component={FollowUpPage} />
       <Route path="/summary" component={SummaryPage} />
+      <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
   );
