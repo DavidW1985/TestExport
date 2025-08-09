@@ -5,8 +5,9 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  createAssessment(assessment: InsertAssessment): Promise<Assessment>;
+  createAssessment(assessment: any): Promise<Assessment>;
   getAssessment(id: string): Promise<Assessment | undefined>;
+  updateAssessment(id: string, updates: Partial<Assessment>): Promise<Assessment>;
 }
 
 export class MemStorage implements IStorage {
@@ -35,7 +36,7 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async createAssessment(insertAssessment: InsertAssessment): Promise<Assessment> {
+  async createAssessment(insertAssessment: any): Promise<Assessment> {
     const id = randomUUID();
     const assessment: Assessment = { 
       ...insertAssessment, 
@@ -44,6 +45,16 @@ export class MemStorage implements IStorage {
     };
     this.assessments.set(id, assessment);
     return assessment;
+  }
+
+  async updateAssessment(id: string, updates: Partial<Assessment>): Promise<Assessment> {
+    const existing = this.assessments.get(id);
+    if (!existing) {
+      throw new Error("Assessment not found");
+    }
+    const updated: Assessment = { ...existing, ...updates };
+    this.assessments.set(id, updated);
+    return updated;
   }
 
   async getAssessment(id: string): Promise<Assessment | undefined> {
