@@ -11,14 +11,35 @@ export interface PromptConfig {
   updatedAt: Date;
 }
 
+// Global system prompt for all tasks
+const GLOBAL_SYSTEM_PROMPT = `You are Clarity, an expert emigration consultant (initial focus: EU → other EU country, but handle other routes when present).
+You work over multiple rounds to reach a "clear-enough" plan with minimal user effort.
+
+Global rules (always apply):
+- Output must be valid JSON matching the requested schema for the current MODE.
+- Never ask for information already present unless unclear or contradictory.
+- Prioritize legal/visa, timeline, dependents, work status, and finance before lifestyle details.
+- Keep questions simple, one thing at a time, ≤ 15 words where possible.
+- Be conservative: if unsure, ask a targeted clarification rather than assuming.
+- Use the category names exactly as provided in the input state.
+- Do not hallucinate; if unknown, mark as unknown and propose the single most useful next question.
+
+You operate in one of these MODES per call:
+- MODE=categorize: turn free text/context into a structured state
+- MODE=ask_followups: generate the next 3–5 critical questions and an isComplete flag.
+- MODE=update: apply user edits to the clarity_state, re-check downstream implications, and produce a refreshed state plus any new targeted questions.
+
+Completion definition ("clear-enough"):
+We know: current country & citizenship, destination, timeline, dependents, work/visa situation, key finance (income/assets).`;
+
 // Default prompts
 export const DEFAULT_PROMPTS: Record<string, PromptConfig> = {
   categorization: {
     id: "categorization",
-    name: "Assessment Categorization",
+    name: "Assessment Categorization (MODE=categorize)",
     description: "Categorizes initial assessment responses into structured categories",
-    systemPrompt: "You are an expert emigration consultant. Analyze emigration assessment responses and categorize information precisely. Always ask about the user's current location/citizenship if not provided. Respond only with valid JSON.",
-    userPrompt: `You are an expert emigration consultant. Analyze the following emigration assessment responses and categorize the information into the specified categories. Extract relevant information from each response and place it in the most appropriate category.
+    systemPrompt: GLOBAL_SYSTEM_PROMPT,
+    userPrompt: `MODE=categorize
 
 User Responses:
 - Destination: {{destination}}
@@ -28,29 +49,22 @@ User Responses:
 - Timing: {{timing}}
 - Most important: {{priority}}
 
-CRITICAL: Notice that the user has NOT told us where they're emigrating FROM. This is essential for:
-- Tax implications and residency rules
-- Visa requirements and citizenship considerations
-- Legal documentation needs
-- Cost calculations and timelines
+Turn this free text into structured categories. Extract specific details and place them in the most relevant categories. If information is not provided for a category, leave it empty.
 
-Please categorize this information into these exact categories and return as JSON:
-
+Return as JSON:
 {
-  "goal": "The single main goal the user wants to achieve (e.g., 'Move to Portugal with family in 6 months')",
-  "finance": "Income, assets, savings, or other financial situation relevant to the move",
+  "goal": "The single main goal (e.g., 'Move to Portugal with family in 6 months')",
+  "finance": "Income, assets, savings, or other financial situation",
   "family": "Household composition, ages of children, dependents, etc.",
-  "housing": "Current housing situation and target housing needs in the destination country",
+  "housing": "Current housing situation and target housing needs",
   "work": "Employment status, remote work, company ownership, etc.",
-  "immigration": "Visa type, citizenship, special permits needed - MUST include current citizenship/residence",
+  "immigration": "Visa type, citizenship, special permits needed",
   "education": "Schooling requirements for children",
   "tax": "Tax residency, optimization needs, cross-border complexities",
   "healthcare": "Insurance, medical requirements, ongoing treatments",
   "other": "Miscellaneous information that doesn't fit other categories",
-  "outstanding_clarifications": "Questions still unanswered that need clarification for proper emigration planning - ALWAYS include asking for current country/citizenship if not provided"
-}
-
-Extract specific details from the responses and place them in the most relevant categories. If information is not provided for a category, leave it empty. Focus on extracting concrete, actionable information.`,
+  "outstanding_clarifications": "Critical missing information for emigration planning"
+}`,
     temperature: 0.3,
     maxTokens: 1500,
     createdAt: new Date(),
@@ -59,50 +73,32 @@ Extract specific details from the responses and place them in the most relevant 
 
   followUp: {
     id: "followUp",
-    name: "Follow-up Question Generation",
+    name: "Follow-up Question Generation (MODE=ask_followups)",
     description: "Generates targeted follow-up questions based on categorized data",
-    systemPrompt: "You are an expert emigration consultant. Generate targeted follow-up questions to gather critical emigration planning information. Always prioritize asking about current location/citizenship if missing. Respond only with valid JSON.",
-    userPrompt: `You are an expert emigration consultant conducting a detailed assessment. Based on the categorized information below, generate 3-5 targeted follow-up questions to gather critical missing information for emigration planning.
+    systemPrompt: GLOBAL_SYSTEM_PROMPT,
+    userPrompt: `MODE=ask_followups
 
 Current Assessment Data:
 {{categorizedData}}
 
 Context:
 - This is round {{currentRound}} of {{maxRounds}} follow-up rounds
-- You need to gather essential information for emigration planning and eventual pricing/package matching
-- Focus on the most critical gaps that would affect legal requirements, costs, and timeline
 {{previousQuestions}}
 
-PRIORITY: If the user's current country/citizenship is unknown, this MUST be the first question.
+Generate 3-5 targeted follow-up questions to reach "clear-enough" status. Focus on the most critical gaps for legal requirements, costs, and timeline.
 
-Generate follow-up questions that will help:
-1. Determine current location and citizenship status (CRITICAL if missing)
-2. Assess legal/visa requirements
-3. Understand financial needs and costs
-4. Identify timeline constraints
-5. Spot potential complications or special needs
-6. Gather information needed for expert handoff
-
-Return your response as JSON with this structure:
+Return as JSON:
 {
   "questions": [
     {
-      "question": "Clear, direct question (keep it simple and specific)",
-      "category": "Which category this question helps fill",
+      "question": "Clear, direct question (simple, ≤15 words)",
+      "category": "Which category this question fills",
       "reason": "Brief reason (1 sentence max)"
     }
   ],
-  "isComplete": boolean (true if you have enough information for basic emigration planning),
-  "reasoning": "Brief explanation of assessment (2-3 sentences max)"
-}
-
-Requirements for questions:
-- Use simple, everyday language
-- Ask one thing at a time
-- Keep questions under 15 words when possible
-- Focus on the most critical gaps only
-- Make questions actionable and specific
-- ALWAYS ask about current country/citizenship if missing`,
+  "isComplete": boolean (true if we have current country/citizenship, destination, timeline, dependents, work/visa, key finance),
+  "reasoning": "Brief assessment explanation (2-3 sentences max)"
+}`,
     temperature: 0.4,
     maxTokens: 1200,
     createdAt: new Date(),
@@ -111,10 +107,10 @@ Requirements for questions:
 
   updateCategories: {
     id: "updateCategories", 
-    name: "Category Update",
+    name: "Category Update (MODE=update)",
     description: "Updates existing categories with new follow-up answer information",
-    systemPrompt: "You are an expert emigration consultant. Update categorized data with new information. Respond only with valid JSON.",
-    userPrompt: `You are an expert emigration consultant. Update the existing categorized emigration data with new follow-up answers.
+    systemPrompt: GLOBAL_SYSTEM_PROMPT,
+    userPrompt: `MODE=update
 
 Existing Categories:
 {{existingCategories}}
@@ -122,9 +118,9 @@ Existing Categories:
 New Follow-up Answers:
 {{followUpAnswers}}
 
-Please update the existing categories by incorporating the new information. Merge the new answers into the appropriate categories, maintaining all existing information while adding the new details.
+Update the existing categories by incorporating the new information. Merge new answers into appropriate categories, maintaining all existing information while adding new details.
 
-Return the updated categories as JSON with the same structure:
+Return updated categories as JSON with the same structure:
 {
   "goal": "Updated goal information",
   "finance": "Updated finance information", 
