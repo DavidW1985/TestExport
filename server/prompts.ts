@@ -34,6 +34,60 @@ We know: current country & citizenship, destination, timeline, dependents, work/
 
 // Default prompts
 export const DEFAULT_PROMPTS: Record<string, PromptConfig> = {
+  systemPrompt: {
+    id: "systemPrompt",
+    name: "Global System Prompt",
+    description: "The unified system prompt used across all Clarity modes",
+    systemPrompt: "", // Not used for this meta-prompt
+    userPrompt: GLOBAL_SYSTEM_PROMPT,
+    temperature: 0.3,
+    maxTokens: 1500,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+
+  globalPrompt: {
+    id: "globalPrompt", 
+    name: "Global Prompt Template",
+    description: "Base template and rules that can be referenced by all mode-specific prompts",
+    systemPrompt: "", // Not used for this meta-prompt
+    userPrompt: `Global Template Variables and Rules:
+
+Template Variables Available:
+- {{destination}} - Target emigration destination
+- {{companions}} - Who is moving (family composition)
+- {{income}} - Income source information  
+- {{housing}} - Housing plans and situation
+- {{timing}} - Timeline for the move
+- {{priority}} - What's most important to the user
+- {{categorizedData}} - Previously categorized assessment data
+- {{currentRound}} - Current follow-up round number
+- {{maxRounds}} - Maximum follow-up rounds allowed
+- {{previousQuestions}} - Previously asked questions
+- {{existingCategories}} - Existing category data
+- {{followUpAnswers}} - New follow-up answers to process
+
+Global Completion Criteria:
+- Current country & citizenship status known
+- Destination country confirmed
+- Timeline established
+- Dependents situation clarified
+- Work/visa situation understood
+- Key financial information (income/assets) gathered
+
+Priority Order for Information Gathering:
+1. Current country & citizenship (CRITICAL)
+2. Legal/visa requirements 
+3. Timeline constraints
+4. Dependents (children, elderly, etc.)
+5. Work status and visa implications
+6. Financial capacity (income, assets)
+7. Lifestyle preferences (housing, education, etc.)`,
+    temperature: 0.3,
+    maxTokens: 1500,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
   categorization: {
     id: "categorization",
     name: "Assessment Categorization (MODE=categorize)",
@@ -156,6 +210,11 @@ export class PromptManager {
 
   static getPrompt(id: string): PromptConfig | undefined {
     return promptsStorage.get(id);
+  }
+
+  static getGlobalSystemPrompt(): string {
+    const systemPrompt = promptsStorage.get('systemPrompt');
+    return systemPrompt ? systemPrompt.userPrompt : GLOBAL_SYSTEM_PROMPT;
   }
 
   static updatePrompt(id: string, updates: Partial<PromptConfig>): PromptConfig {
