@@ -266,52 +266,7 @@ export default function Assessment() {
             )}
           </div>
 
-          {/* Contact Information */}
-          <Card className="bg-gray-50 border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center">
-              <Mail className="h-5 w-5 text-primary mr-2" />
-              How should we reach you with your assessment?
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="email" className="block text-sm font-medium text-text-primary mb-2">
-                  Email Address <span className="text-error">*</span>
-                </Label>
-                <Input 
-                  type="email"
-                  id="email"
-                  {...form.register("email")}
-                  placeholder="your.email@example.com"
-                  className="border-2 focus:border-primary focus:ring-4 focus:ring-blue-100"
-                  data-testid="input-email"
-                />
-                {form.formState.errors.email && (
-                  <p className="text-error text-sm mt-2" data-testid="error-email">
-                    {form.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
-              
-              <div>
-                <Label htmlFor="fullName" className="block text-sm font-medium text-text-primary mb-2">
-                  Full Name <span className="text-error">*</span>
-                </Label>
-                <Input 
-                  id="fullName"
-                  {...form.register("fullName")}
-                  placeholder="John Smith"
-                  className="border-2 focus:border-primary focus:ring-4 focus:ring-blue-100"
-                  data-testid="input-fullname"
-                />
-                {form.formState.errors.fullName && (
-                  <p className="text-error text-sm mt-2" data-testid="error-fullname">
-                    {form.formState.errors.fullName.message}
-                  </p>
-                )}
-              </div>
-            </div>
-          </Card>
+
 
           {/* Submit Button */}
           <div className="pt-6">
@@ -328,7 +283,7 @@ export default function Assessment() {
                 </>
               ) : (
                 <>
-                  <span>Get My Expert Assessment</span>
+                  <span>Continue to AI Follow-up Questions</span>
                   <ArrowRight className="h-5 w-5" />
                 </>
               )}
