@@ -57,7 +57,7 @@ export async function categorizeAssessment(
     messages: [
       {
         role: "system",
-        content: promptConfig.systemPrompt
+        content: PromptManager.getGlobalSystemPrompt()
       },
       {
         role: "user",
@@ -96,7 +96,7 @@ export async function generateFollowUpQuestions(
     messages: [
       {
         role: "system",
-        content: promptConfig.systemPrompt
+        content: PromptManager.getGlobalSystemPrompt()
       },
       {
         role: "user",
@@ -131,7 +131,7 @@ export async function updateCategoriesWithFollowUp(
     messages: [
       {
         role: "system",
-        content: promptConfig.systemPrompt
+        content: PromptManager.getGlobalSystemPrompt()
       },
       {
         role: "user",
