@@ -73,6 +73,7 @@ export default function Assessment() {
         };
         sessionStorage.setItem('assessmentState', JSON.stringify(assessmentState));
         setLocation('/follow-up');
+        setTimeout(() => window.scrollTo(0, 0), 100);
         toast({
           title: "Assessment Processed!",
           description: `We have ${data.followUpQuestions.length} follow-up questions to better understand your needs.`,
