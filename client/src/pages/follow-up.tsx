@@ -51,6 +51,7 @@ export default function FollowUpPage() {
         // Assessment is complete, show summary
         sessionStorage.setItem('completedAssessment', JSON.stringify(data));
         setLocation('/summary');
+        setTimeout(() => window.scrollTo(0, 0), 100);
       } else {
         // More rounds needed, update state and continue
         const newState = {
@@ -62,6 +63,7 @@ export default function FollowUpPage() {
         sessionStorage.setItem('assessmentState', JSON.stringify(newState));
         setAnswers({});
         setCurrentQuestionIndex(0);
+        setTimeout(() => window.scrollTo(0, 0), 100);
       }
     },
   });
@@ -117,8 +119,57 @@ export default function FollowUpPage() {
     });
   };
 
+  const getPlaceholderForQuestion = (question: string): string => {
+    const lowerQuestion = question.toLowerCase();
+    
+    // Financial questions
+    if (lowerQuestion.includes('income') || lowerQuestion.includes('salary') || lowerQuestion.includes('earn')) {
+      return "e.g., $75,000 USD annually from software development, or €45,000 from consulting work";
+    }
+    if (lowerQuestion.includes('saving') || lowerQuestion.includes('budget') || lowerQuestion.includes('cost')) {
+      return "e.g., $50,000 saved for the move, or planning to budget $3,000 monthly";
+    }
+    
+    // Visa/immigration questions
+    if (lowerQuestion.includes('visa') || lowerQuestion.includes('permit') || lowerQuestion.includes('citizenship')) {
+      return "e.g., I'm a US citizen looking for work visa, or I have EU citizenship through my parents";
+    }
+    
+    // Work questions
+    if (lowerQuestion.includes('job') || lowerQuestion.includes('work') || lowerQuestion.includes('employer')) {
+      return "e.g., Remote software engineer, or looking for marketing roles in tech companies";
+    }
+    
+    // Family questions
+    if (lowerQuestion.includes('family') || lowerQuestion.includes('spouse') || lowerQuestion.includes('children')) {
+      return "e.g., Married with 2 children ages 8 and 12, or single with elderly parents to consider";
+    }
+    
+    // Housing questions
+    if (lowerQuestion.includes('housing') || lowerQuestion.includes('rent') || lowerQuestion.includes('buy')) {
+      return "e.g., Plan to rent 3-bedroom apartment near city center, or buy house in suburbs";
+    }
+    
+    // Education questions
+    if (lowerQuestion.includes('school') || lowerQuestion.includes('education') || lowerQuestion.includes('university')) {
+      return "e.g., Need English-speaking international school, or looking at local universities";
+    }
+    
+    // Healthcare questions
+    if (lowerQuestion.includes('health') || lowerQuestion.includes('medical') || lowerQuestion.includes('insurance')) {
+      return "e.g., No ongoing medical needs, or require diabetes medication and regular checkups";
+    }
+    
+    // Timeline questions
+    if (lowerQuestion.includes('when') || lowerQuestion.includes('timeline') || lowerQuestion.includes('deadline')) {
+      return "e.g., Planning to move in 6 months, or flexible timing depending on visa approval";
+    }
+    
+    // Default placeholder
+    return "Please provide specific details about your situation...";
+  };
+
   const allAnswered = followUpQuestions.every((_, index) => answers[index]?.trim());
-  const currentQuestion = followUpQuestions[currentQuestionIndex];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -143,7 +194,7 @@ export default function FollowUpPage() {
                 </Label>
                 <Textarea
                   id={`question-${index}`}
-                  placeholder="Please provide details..."
+                  placeholder={getPlaceholderForQuestion(question.question)}
                   value={answers[index] || ''}
                   onChange={(e) => handleAnswerChange(index, e.target.value)}
                   rows={4}
