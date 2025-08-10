@@ -69,6 +69,8 @@ export async function categorizeAssessment(
     priority
   });
 
+
+
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
@@ -114,6 +116,8 @@ export async function generateFollowUpQuestions(
     maxRounds,
     previousQuestions: previousQuestions ? `- Previous questions asked: ${previousQuestions.join(', ')}` : ''
   });
+
+
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
