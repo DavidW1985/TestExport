@@ -15,6 +15,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Step 1: Categorize the assessment data using LLM
       console.log("Categorizing assessment with LLM...");
+
       const categorizedData = await categorizeAssessment(
         validatedData.destination,
         validatedData.companions,
@@ -23,10 +24,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData.timing,
         validatedData.priority
       );
+
       
       // Step 2: Generate follow-up questions
       console.log("Generating follow-up questions...");
       const followUpResult = await generateFollowUpQuestions(categorizedData, 1, 3);
+
       
       // Step 3: Create assessment with categorized data
       const assessmentWithCategories = {
@@ -116,7 +119,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update categories with follow-up answers
       console.log("Updating categories with follow-up answers...");
+
       const updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers);
+
       
       const currentRound = parseInt(existingAssessment.current_round || "1");
       const maxRounds = parseInt(existingAssessment.max_rounds || "3");
@@ -128,6 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (nextRound <= maxRounds) {
         console.log(`Generating follow-up questions for round ${nextRound}...`);
         followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds);
+
       }
 
       // Update assessment in storage
