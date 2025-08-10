@@ -44,11 +44,17 @@ export default function FollowUpPage() {
       try {
         console.log('Making fetch request to /api/assessments/follow-up with data:', data);
         
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+        
         const response = await fetch('/api/assessments/follow-up', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
         
         console.log('Response received. Status:', response.status, 'OK:', response.ok);
         
