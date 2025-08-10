@@ -28,6 +28,8 @@ interface AssessmentState {
 export default function FollowUpPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const [showError, setShowError] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<any>(null);
 
   // Get assessment state from location state or session storage
   const assessmentState: AssessmentState | null = JSON.parse(
@@ -114,9 +116,9 @@ export default function FollowUpPage() {
         stack: (error as any)?.stack || 'No stack trace',
       };
       
-      // Store error info and redirect to debug page
-      sessionStorage.setItem('debugError', JSON.stringify(errorInfo));
-      setLocation('/error-debug');
+      // Show error details directly on this page
+      setErrorDetails(errorInfo);
+      setShowError(true);
     },
   });
 
@@ -242,6 +244,60 @@ export default function FollowUpPage() {
     // Default placeholder
     return "Please provide specific details about your situation...";
   };
+
+  // Show error details if there's an error
+  if (showError && errorDetails) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card className="border-red-200 dark:border-red-800">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl text-red-700 dark:text-red-400">
+                🐛 Bug Details - Load Failed Error
+              </CardTitle>
+              <CardDescription className="text-lg">
+                Here's what went wrong with the follow-up submission
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <strong>Error Type:</strong> {errorDetails.type}
+              </div>
+              <div>
+                <strong>Message:</strong> {errorDetails.message}
+              </div>
+              <div>
+                <strong>Assessment ID:</strong> {errorDetails.assessmentId}
+              </div>
+              <div>
+                <strong>Current Round:</strong> {errorDetails.currentRound}
+              </div>
+              <div>
+                <strong>Request Data:</strong>
+                <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-auto text-sm mt-2">
+                  {JSON.stringify(errorDetails.requestData, null, 2)}
+                </pre>
+              </div>
+              <div className="flex gap-4">
+                <Button onClick={() => setShowError(false)} variant="outline">
+                  Go Back
+                </Button>
+                <Button onClick={() => setLocation('/')}>
+                  Start Over
+                </Button>
+                <Button 
+                  onClick={() => navigator.clipboard.writeText(JSON.stringify(errorDetails, null, 2))}
+                  variant="outline"
+                >
+                  Copy Error Details
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   const allAnswered = followUpQuestions.every((_, index) => answers[index]?.trim());
 
