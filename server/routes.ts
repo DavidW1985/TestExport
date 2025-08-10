@@ -134,6 +134,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentRound = parseInt(existingAssessment.current_round || "1");
       console.log(`Processing round ${currentRound} follow-up answers for assessment ${assessmentId}`);
       console.log(`Submitted answers:`, Object.keys(answers).length, 'answers');
+      console.log(`Assessment state:`, {
+        id: existingAssessment.id,
+        current_round: existingAssessment.current_round,
+        max_rounds: existingAssessment.max_rounds,
+        is_complete: existingAssessment.is_complete
+      });
       
       let updatedCategories;
       try {
@@ -185,7 +191,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         is_complete: followUpResult.isComplete ? "true" : "false"
       };
 
-      await storage.updateAssessment(assessmentId, updates);
+      console.log(`Updating assessment with:`, { 
+        assessmentId, 
+        nextRound, 
+        isComplete: followUpResult.isComplete,
+        questionsGenerated: followUpResult.questions.length 
+      });
+
+      try {
+        await storage.updateAssessment(assessmentId, updates);
+        console.log(`Assessment ${assessmentId} updated successfully for round ${nextRound}`);
+      } catch (error) {
+        console.error(`Failed to update assessment ${assessmentId}:`, error);
+        throw error;
+      }
 
       res.status(200).json({
         success: true,
