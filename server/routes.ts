@@ -169,9 +169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Prompt management endpoints
-  app.get("/api/prompts", (req, res) => {
+  app.get("/api/prompts", async (req, res) => {
     try {
-      const prompts = PromptManager.getAllPrompts();
+      const prompts = await storage.getAllPrompts();
       res.json({ success: true, prompts });
     } catch (error) {
       console.error("Get prompts error:", error);
@@ -179,10 +179,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/prompts/:id", (req, res) => {
+  app.get("/api/prompts/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const prompt = PromptManager.getPrompt(id);
+      const prompt = await storage.getPrompt(id);
       
       if (!prompt) {
         return res.status(404).json({ success: false, message: "Prompt not found" });
@@ -195,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/prompts/:id", (req, res) => {
+  app.put("/api/prompts/:id", async (req, res) => {
     try {
       const { id } = req.params;
       const updates = req.body;
@@ -211,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const validatedUpdates = updateSchema.parse(updates);
-      const updatedPrompt = PromptManager.updatePrompt(id, validatedUpdates);
+      const updatedPrompt = await storage.updatePrompt(id, validatedUpdates);
       
       res.json({ 
         success: true, 
