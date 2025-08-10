@@ -47,12 +47,15 @@ export default function FollowUpPage() {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('Follow-up submission successful:', data);
       if (data.isComplete) {
+        console.log('Assessment marked as complete, going to summary');
         // Assessment is complete, show summary
         sessionStorage.setItem('completedAssessment', JSON.stringify(data));
         setLocation('/summary');
         setTimeout(() => window.scrollTo(0, 0), 100);
       } else {
+        console.log(`Moving to next round: ${data.currentRound}, questions:`, data.followUpQuestions?.length);
         // More rounds needed, update state and continue
         const newState = {
           ...assessmentState!,
@@ -65,6 +68,9 @@ export default function FollowUpPage() {
         setCurrentQuestionIndex(0);
         setTimeout(() => window.scrollTo(0, 0), 100);
       }
+    },
+    onError: (error) => {
+      console.error('Follow-up submission error:', error);
     },
   });
 
