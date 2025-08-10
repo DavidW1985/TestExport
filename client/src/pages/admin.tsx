@@ -173,20 +173,23 @@ export default function AdminPage() {
                       </CardTitle>
                       <CardDescription className="truncate">{editedPrompt.description}</CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleReset}
                         data-testid="button-reset"
+                        className="flex items-center"
                       >
                         <RotateCcw className="h-4 w-4 mr-1" />
                         Reset
                       </Button>
                       <Button
+                        size="sm"
                         onClick={handleSave}
                         disabled={updatePromptMutation.isPending}
                         data-testid="button-save"
+                        className="flex items-center"
                       >
                         <Save className="h-4 w-4 mr-1" />
                         {updatePromptMutation.isPending ? 'Saving...' : 'Save Changes'}
