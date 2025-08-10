@@ -83,6 +83,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to test API
+  app.get("/api/debug/test", async (req, res) => {
+    try {
+      res.json({ success: true, message: "API is working", timestamp: new Date().toISOString() });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // Submit follow-up answers
   app.post("/api/assessments/follow-up", async (req, res) => {
     try {
@@ -124,8 +133,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const currentRound = parseInt(existingAssessment.current_round || "1");
       console.log(`Processing round ${currentRound} follow-up answers for assessment ${assessmentId}`);
+      console.log(`Submitted answers:`, Object.keys(answers).length, 'answers');
       
-      const updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers, assessmentId, currentRound);
+      let updatedCategories;
+      try {
+        updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers, assessmentId, currentRound);
+        console.log(`Categories updated successfully for round ${currentRound}`);
+      } catch (error) {
+        console.error(`Error updating categories for round ${currentRound}:`, error);
+        throw error;
+      }
+      
       const maxRounds = parseInt(existingAssessment.max_rounds || "3");
       const nextRound = currentRound + 1;
       console.log(`Current: ${currentRound}, Next: ${nextRound}, Max: ${maxRounds}`);
@@ -137,7 +155,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // After initial assessment (round 0), we want exactly 3 follow-up rounds
       if (currentRound < maxRounds) {
         console.log(`Generating follow-up questions for round ${nextRound} (just completed round ${currentRound} of max ${maxRounds})...`);
-        followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
+        try {
+          followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
+          console.log(`Generated ${followUpResult.questions.length} questions for round ${nextRound}`);
+        } catch (error) {
+          console.error(`Error generating follow-up questions for round ${nextRound}:`, error);
+          throw error;
+        }
       } else {
         console.log(`Assessment completed! Just finished round ${currentRound} which was the final round (max: ${maxRounds})`);
         followUpResult.isComplete = true;
