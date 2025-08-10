@@ -53,6 +53,32 @@ export const prompts = pgTable("prompts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// LLM interaction logs for transparency and debugging
+export const llmLogs = pgTable("llm_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assessmentId: varchar("assessment_id").references(() => assessments.id),
+  operation: text("operation").notNull(), // 'categorize', 'followup', 'update'
+  round: integer("round").default(1),
+  
+  // Request details
+  promptUsed: text("prompt_used").notNull(), // Full rendered prompt
+  systemPrompt: text("system_prompt").notNull(),
+  inputData: text("input_data").notNull(), // JSON of variables used
+  
+  // Response details  
+  llmResponse: text("llm_response").notNull(), // Raw LLM response
+  parsedResult: text("parsed_result").notNull(), // Parsed JSON result
+  
+  // Metadata
+  model: text("model").notNull(),
+  temperature: real("temperature").notNull(),
+  tokensUsed: integer("tokens_used"),
+  responseTimeMs: integer("response_time_ms"),
+  success: text("success").notNull().default("true"), // 'true' or error message
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -95,3 +121,10 @@ export type InsertAssessment = z.infer<typeof insertAssessmentSchema>;
 export type Assessment = typeof assessments.$inferSelect;
 export type InsertPrompt = z.infer<typeof insertPromptSchema>;
 export type Prompt = typeof prompts.$inferSelect;
+
+export const insertLlmLogSchema = createInsertSchema(llmLogs).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertLlmLog = z.infer<typeof insertLlmLogSchema>;
+export type LlmLog = typeof llmLogs.$inferSelect;

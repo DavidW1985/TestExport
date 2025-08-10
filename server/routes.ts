@@ -26,14 +26,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       
-      // Step 2: Generate follow-up questions
-      console.log("Generating follow-up questions...");
-      const followUpResult = await generateFollowUpQuestions(categorizedData, 1, 3);
-
-      
-      // Step 3: Create assessment with categorized data
-      const assessmentWithCategories = {
+      // Step 2: Create initial assessment to get ID for logging
+      const initialAssessment = await storage.createAssessment({
         ...validatedData,
+        current_round: "1",
+        max_rounds: "3",
+        is_complete: "false"
+      });
+
+      // Step 3: Generate follow-up questions (with logging)
+      console.log("Generating follow-up questions...");
+      const followUpResult = await generateFollowUpQuestions(categorizedData, 1, 3, [], initialAssessment.id);
+
+      // Step 4: Update assessment with categorized data
+      const assessment = await storage.updateAssessment(initialAssessment.id, {
         goal: categorizedData.goal,
         finance: categorizedData.finance,
         family: categorizedData.family,
@@ -45,12 +51,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         healthcare: categorizedData.healthcare,
         other: categorizedData.other,
         outstanding_clarifications: categorizedData.outstanding_clarifications,
-        current_round: "1",
-        max_rounds: "3",
         is_complete: followUpResult.isComplete ? "true" : "false"
-      };
-      
-      const assessment = await storage.createAssessment(assessmentWithCategories);
+      });
       
       res.status(201).json({
         success: true,
@@ -120,19 +122,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update categories with follow-up answers
       console.log("Updating categories with follow-up answers...");
 
-      const updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers);
-
-      
       const currentRound = parseInt(existingAssessment.current_round || "1");
+      
+      const updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers, assessmentId, currentRound);
       const maxRounds = parseInt(existingAssessment.max_rounds || "3");
       const nextRound = currentRound + 1;
 
       // Generate next round of questions if needed
-      let followUpResult = { questions: [], isComplete: true, reasoning: "Assessment complete." };
+      let followUpResult: { questions: any[], isComplete: boolean, reasoning: string } = { questions: [], isComplete: true, reasoning: "Assessment complete." };
       
       if (nextRound <= maxRounds) {
         console.log(`Generating follow-up questions for round ${nextRound}...`);
-        followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds);
+        followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
 
       }
 
@@ -249,7 +250,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         systemPrompt: z.string(),
         userPrompt: z.string(),
         temperature: z.number().min(0).max(2).default(0.3),
-        maxTokens: z.number().min(1).max(4000).default(1500)
+        maxTokens: z.number().min(1).max(4000).default(1500),
+        model: z.string().default("gpt-4o")
       });
       
       const validatedPrompt = promptSchema.parse(promptData);
@@ -287,6 +289,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete prompt error:", error);
       res.status(500).json({ success: false, message: "Failed to delete prompt" });
+    }
+  });
+
+  // LLM Logging API endpoints
+  app.get("/api/llm-logs", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const logs = await storage.getAllLogs(limit);
+      
+      res.json({
+        success: true,
+        logs: logs.map(log => ({
+          ...log,
+          inputData: JSON.parse(log.inputData),
+          parsedResult: log.parsedResult ? JSON.parse(log.parsedResult) : null
+        }))
+      });
+    } catch (error) {
+      console.error("Get LLM logs error:", error);
+      res.status(500).json({ success: false, message: "Failed to retrieve logs" });
+    }
+  });
+
+  app.get("/api/assessments/:id/llm-logs", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const logs = await storage.getAssessmentLogs(id);
+      
+      res.json({
+        success: true,
+        logs: logs.map(log => ({
+          ...log,
+          inputData: JSON.parse(log.inputData),
+          parsedResult: log.parsedResult ? JSON.parse(log.parsedResult) : null
+        }))
+      });
+    } catch (error) {
+      console.error("Get assessment logs error:", error);
+      res.status(500).json({ success: false, message: "Failed to retrieve assessment logs" });
     }
   });
 
