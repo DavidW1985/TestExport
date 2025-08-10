@@ -44,19 +44,41 @@ export default function FollowUpPage() {
       try {
         console.log('Making fetch request to /api/assessments/follow-up with data:', data);
         
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-        
-        const response = await fetch('/api/assessments/follow-up', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-          signal: controller.signal,
+        // Use XMLHttpRequest instead of fetch to avoid browser timeout issues
+        const response = await new Promise<Response>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.timeout = 60000; // 60 second timeout
+          
+          xhr.open('POST', '/api/assessments/follow-up');
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          
+          xhr.onload = () => {
+            const response = new Response(xhr.responseText, {
+              status: xhr.status,
+              statusText: xhr.statusText,
+              headers: new Headers(
+                xhr.getAllResponseHeaders()
+                  .split('\r\n')
+                  .filter(Boolean)
+                  .map(header => {
+                    const [key, ...values] = header.split(':');
+                    return [key.trim(), values.join(':').trim()];
+                  })
+              )
+            });
+            resolve(response);
+          };
+          
+          xhr.onerror = () => reject(new Error(`Network error: ${xhr.status} ${xhr.statusText}`));
+          xhr.ontimeout = () => reject(new Error('Request timeout after 60 seconds'));
+          
+          xhr.send(JSON.stringify(data));
         });
         
-        clearTimeout(timeoutId);
-        
         console.log('Response received. Status:', response.status, 'OK:', response.ok);
+        
+        // Log response headers for debugging
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (!response.ok) {
           const errorData = await response.text();
@@ -64,7 +86,19 @@ export default function FollowUpPage() {
           throw new Error(`Server error: ${response.status} ${errorData}`);
         }
         
-        const responseData = await response.json();
+        // Try to read the response as text first to see what we're getting
+        const responseText = await response.text();
+        console.log('Raw response text:', responseText.substring(0, 200) + '...');
+        
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          console.error('Full response text:', responseText);
+          throw new Error('Invalid JSON response from server');
+        }
+        
         console.log('Response JSON parsed successfully:', responseData);
         return responseData;
         
