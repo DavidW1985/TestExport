@@ -123,10 +123,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Updating categories with follow-up answers...");
 
       const currentRound = parseInt(existingAssessment.current_round || "1");
+      console.log(`Processing round ${currentRound} follow-up answers for assessment ${assessmentId}`);
       
       const updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers, assessmentId, currentRound);
       const maxRounds = parseInt(existingAssessment.max_rounds || "3");
       const nextRound = currentRound + 1;
+      console.log(`Current: ${currentRound}, Next: ${nextRound}, Max: ${maxRounds}`);
 
       // Generate next round of questions if needed
       let followUpResult: { questions: any[], isComplete: boolean, reasoning: string } = { questions: [], isComplete: true, reasoning: "Assessment complete." };
