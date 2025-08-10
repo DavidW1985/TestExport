@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, real, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -40,6 +40,18 @@ export const assessments = pgTable("assessments", {
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
+export const prompts = pgTable("prompts", {
+  id: varchar("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  systemPrompt: text("system_prompt").notNull(),
+  userPrompt: text("user_prompt").notNull(),
+  temperature: real("temperature").notNull().default(0.7),
+  maxTokens: integer("max_tokens").notNull().default(1500),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -71,7 +83,14 @@ export const insertAssessmentSchema = createInsertSchema(assessments).omit({
   priority: z.string().min(1, "Please share what's most important"),
 });
 
+export const insertPromptSchema = createInsertSchema(prompts).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertAssessment = z.infer<typeof insertAssessmentSchema>;
 export type Assessment = typeof assessments.$inferSelect;
+export type InsertPrompt = z.infer<typeof insertPromptSchema>;
+export type Prompt = typeof prompts.$inferSelect;

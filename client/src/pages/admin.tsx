@@ -165,15 +165,15 @@ export default function AdminPage() {
             {editedPrompt && (
               <Card className="shadow-lg border-0 bg-white dark:bg-gray-800">
                 <CardHeader className="border-b bg-gray-50 dark:bg-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
                       <CardTitle className="flex items-center gap-2">
                         {getIconForPrompt(editedPrompt.id)}
                         <span className="truncate">{editedPrompt.name}</span>
                       </CardTitle>
                       <CardDescription className="truncate">{editedPrompt.description}</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"

@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Assessment, type InsertAssessment } from "@shared/schema";
+import { type User, type InsertUser, type Assessment, type InsertAssessment, type Prompt, type InsertPrompt } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -8,58 +8,94 @@ export interface IStorage {
   createAssessment(assessment: any): Promise<Assessment>;
   getAssessment(id: string): Promise<Assessment | undefined>;
   updateAssessment(id: string, updates: Partial<Assessment>): Promise<Assessment>;
+  // Prompt management
+  getAllPrompts(): Promise<Prompt[]>;
+  getPrompt(id: string): Promise<Prompt | undefined>;
+  createPrompt(prompt: InsertPrompt): Promise<Prompt>;
+  updatePrompt(id: string, updates: Partial<Prompt>): Promise<Prompt>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private assessments: Map<string, Assessment>;
+// Import database functionality
+import { db } from "./db";
+import { users, assessments, prompts } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 
-  constructor() {
-    this.users = new Map();
-    this.assessments = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async createAssessment(insertAssessment: any): Promise<Assessment> {
-    const id = randomUUID();
-    const assessment: Assessment = { 
-      ...insertAssessment, 
-      id,
-      submittedAt: new Date()
-    };
-    this.assessments.set(id, assessment);
+    const [assessment] = await db
+      .insert(assessments)
+      .values(insertAssessment)
+      .returning();
     return assessment;
   }
 
   async updateAssessment(id: string, updates: Partial<Assessment>): Promise<Assessment> {
-    const existing = this.assessments.get(id);
-    if (!existing) {
+    const [assessment] = await db
+      .update(assessments)
+      .set(updates)
+      .where(eq(assessments.id, id))
+      .returning();
+    if (!assessment) {
       throw new Error("Assessment not found");
     }
-    const updated: Assessment = { ...existing, ...updates };
-    this.assessments.set(id, updated);
-    return updated;
+    return assessment;
   }
 
   async getAssessment(id: string): Promise<Assessment | undefined> {
-    return this.assessments.get(id);
+    const [assessment] = await db.select().from(assessments).where(eq(assessments.id, id));
+    return assessment || undefined;
+  }
+
+  // Prompt management methods
+  async getAllPrompts(): Promise<Prompt[]> {
+    return await db.select().from(prompts).orderBy(prompts.createdAt);
+  }
+
+  async getPrompt(id: string): Promise<Prompt | undefined> {
+    const [prompt] = await db.select().from(prompts).where(eq(prompts.id, id));
+    return prompt || undefined;
+  }
+
+  async createPrompt(insertPrompt: InsertPrompt): Promise<Prompt> {
+    const [prompt] = await db
+      .insert(prompts)
+      .values(insertPrompt)
+      .returning();
+    return prompt;
+  }
+
+  async updatePrompt(id: string, updates: Partial<Prompt>): Promise<Prompt> {
+    const [prompt] = await db
+      .update(prompts)
+      .set({ 
+        ...updates, 
+        updatedAt: sql`NOW()` 
+      })
+      .where(eq(prompts.id, id))
+      .returning();
+    if (!prompt) {
+      throw new Error("Prompt not found");
+    }
+    return prompt;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

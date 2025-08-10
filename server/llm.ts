@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { PromptManager } from "./prompts";
+import { storage } from "./storage";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -30,6 +30,16 @@ export interface FollowUpResult {
   reasoning: string;
 }
 
+// Helper function to render prompts with variables
+function renderPrompt(template: string, variables: Record<string, any>): string {
+  let rendered = template;
+  for (const [key, value] of Object.entries(variables)) {
+    const placeholder = `{{${key}}}`;
+    rendered = rendered.replace(new RegExp(placeholder, 'g'), String(value));
+  }
+  return rendered;
+}
+
 export async function categorizeAssessment(
   destination: string,
   companions: string,
@@ -38,12 +48,19 @@ export async function categorizeAssessment(
   timing: string,
   priority: string
 ): Promise<CategorizationResult> {
-  const promptConfig = PromptManager.getPrompt('categorization');
+  const [promptConfig, systemPrompt] = await Promise.all([
+    storage.getPrompt('categorization'),
+    storage.getPrompt('systemPrompt')
+  ]);
+  
   if (!promptConfig) {
     throw new Error('Categorization prompt not found');
   }
+  if (!systemPrompt) {
+    throw new Error('System prompt not found');
+  }
 
-  const userPrompt = PromptManager.renderPrompt(promptConfig.userPrompt, {
+  const userPrompt = renderPrompt(promptConfig.userPrompt, {
     destination,
     companions,
     income,
@@ -57,7 +74,7 @@ export async function categorizeAssessment(
     messages: [
       {
         role: "system",
-        content: PromptManager.getGlobalSystemPrompt()
+        content: systemPrompt.userPrompt
       },
       {
         role: "user",
@@ -79,12 +96,19 @@ export async function generateFollowUpQuestions(
   maxRounds: number,
   previousQuestions?: string[]
 ): Promise<FollowUpResult> {
-  const promptConfig = PromptManager.getPrompt('followUp');
+  const [promptConfig, systemPrompt] = await Promise.all([
+    storage.getPrompt('followUp'),
+    storage.getPrompt('systemPrompt')
+  ]);
+  
   if (!promptConfig) {
     throw new Error('Follow-up prompt not found');
   }
+  if (!systemPrompt) {
+    throw new Error('System prompt not found');
+  }
 
-  const userPrompt = PromptManager.renderPrompt(promptConfig.userPrompt, {
+  const userPrompt = renderPrompt(promptConfig.userPrompt, {
     categorizedData: JSON.stringify(categorizedData, null, 2),
     currentRound,
     maxRounds,
@@ -96,7 +120,7 @@ export async function generateFollowUpQuestions(
     messages: [
       {
         role: "system",
-        content: PromptManager.getGlobalSystemPrompt()
+        content: systemPrompt.userPrompt
       },
       {
         role: "user",
@@ -116,12 +140,19 @@ export async function updateCategoriesWithFollowUp(
   existingCategories: CategorizationResult,
   followUpAnswers: Record<string, string>
 ): Promise<CategorizationResult> {
-  const promptConfig = PromptManager.getPrompt('updateCategories');
+  const [promptConfig, systemPrompt] = await Promise.all([
+    storage.getPrompt('updateCategories'),
+    storage.getPrompt('systemPrompt')
+  ]);
+  
   if (!promptConfig) {
     throw new Error('Update categories prompt not found');
   }
+  if (!systemPrompt) {
+    throw new Error('System prompt not found');
+  }
 
-  const userPrompt = PromptManager.renderPrompt(promptConfig.userPrompt, {
+  const userPrompt = renderPrompt(promptConfig.userPrompt, {
     existingCategories: JSON.stringify(existingCategories, null, 2),
     followUpAnswers: JSON.stringify(followUpAnswers, null, 2)
   });
@@ -131,7 +162,7 @@ export async function updateCategoriesWithFollowUp(
     messages: [
       {
         role: "system",
-        content: PromptManager.getGlobalSystemPrompt()
+        content: systemPrompt.userPrompt
       },
       {
         role: "user",
