@@ -38,17 +38,34 @@ export default function FollowUpPage() {
 
   const submitFollowUpMutation = useMutation({
     mutationFn: async (data: { assessmentId: string; answers: Record<string, string> }) => {
-      const response = await fetch('/api/assessments/follow-up', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Server error response:', errorData);
-        throw new Error(`Failed to submit follow-up answers: ${response.status} ${errorData}`);
+      try {
+        console.log('Making fetch request to /api/assessments/follow-up with data:', data);
+        
+        const response = await fetch('/api/assessments/follow-up', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        
+        console.log('Response received. Status:', response.status, 'OK:', response.ok);
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('Server error response:', errorData);
+          throw new Error(`Server error: ${response.status} ${errorData}`);
+        }
+        
+        const responseData = await response.json();
+        console.log('Response JSON parsed successfully:', responseData);
+        return responseData;
+        
+      } catch (error) {
+        console.error('Fetch error caught:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error name:', error?.constructor?.name);
+        console.error('Error message:', error?.message);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: (data) => {
       console.log('Follow-up submission successful:', data);
