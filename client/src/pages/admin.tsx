@@ -344,6 +344,16 @@ export default function AdminPage() {
                         </div>
                         
                         <div>
+                          <Label className="text-base font-medium">AI Model</Label>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="font-mono">
+                              {editedPrompt.model || 'gpt-4o'}
+                            </Badge>
+                            <p className="text-xs text-gray-500">Currently used model</p>
+                          </div>
+                        </div>
+
+                        <div>
                           <Label className="text-base font-medium">Created</Label>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             {new Date(editedPrompt.createdAt).toLocaleString()}
@@ -360,6 +370,13 @@ export default function AdminPage() {
                         <div>
                           <Label className="text-base font-medium">Status</Label>
                           <Badge variant="secondary">Active</Badge>
+                        </div>
+
+                        <div>
+                          <Label className="text-base font-medium">Usage</Label>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Backend processing & AI responses
+                          </p>
                         </div>
                       </div>
                     </TabsContent>

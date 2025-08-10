@@ -48,6 +48,7 @@ export const prompts = pgTable("prompts", {
   userPrompt: text("user_prompt").notNull(),
   temperature: real("temperature").notNull().default(0.7),
   maxTokens: integer("max_tokens").notNull().default(1500),
+  model: text("model").notNull().default("gpt-4o"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

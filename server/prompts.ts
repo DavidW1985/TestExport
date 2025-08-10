@@ -7,6 +7,7 @@ export interface PromptConfig {
   userPrompt: string;
   temperature: number;
   maxTokens: number;
+  model: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,6 +43,7 @@ export const DEFAULT_PROMPTS: Record<string, PromptConfig> = {
     userPrompt: GLOBAL_SYSTEM_PROMPT,
     temperature: 0.3,
     maxTokens: 1500,
+    model: "gpt-4o",
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -51,6 +53,7 @@ export const DEFAULT_PROMPTS: Record<string, PromptConfig> = {
     name: "Global Prompt Template",
     description: "Base template and rules that can be referenced by all mode-specific prompts",
     systemPrompt: "", // Not used for this meta-prompt
+    model: "gpt-4o",
     userPrompt: `Global Template Variables and Rules:
 
 Template Variables Available:
@@ -85,6 +88,7 @@ Priority Order for Information Gathering:
 7. Lifestyle preferences (housing, education, etc.)`,
     temperature: 0.3,
     maxTokens: 1500,
+    model: "gpt-4o",
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -93,6 +97,7 @@ Priority Order for Information Gathering:
     name: "Assessment Categorization (MODE=categorize)",
     description: "Categorizes initial assessment responses into structured categories",
     systemPrompt: GLOBAL_SYSTEM_PROMPT,
+    model: "gpt-4o",
     userPrompt: `MODE=categorize
 
 User Responses:
@@ -130,6 +135,7 @@ Return as JSON:
     name: "Follow-up Question Generation (MODE=ask_followups)",
     description: "Generates targeted follow-up questions based on categorized data",
     systemPrompt: GLOBAL_SYSTEM_PROMPT,
+    model: "gpt-4o",
     userPrompt: `MODE=ask_followups
 
 Current Assessment Data:
@@ -164,6 +170,7 @@ Return as JSON:
     name: "Category Update (MODE=update)",
     description: "Updates existing categories with new follow-up answer information",
     systemPrompt: GLOBAL_SYSTEM_PROMPT,
+    model: "gpt-4o",
     userPrompt: `MODE=update
 
 Existing Categories:

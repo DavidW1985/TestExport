@@ -23,7 +23,8 @@ async function initializePrompts() {
           systemPrompt: promptConfig.systemPrompt,
           userPrompt: promptConfig.userPrompt,
           temperature: promptConfig.temperature,
-          maxTokens: promptConfig.maxTokens
+          maxTokens: promptConfig.maxTokens,
+          model: promptConfig.model
         });
         console.log(`✓ Created prompt: ${promptConfig.name}`);
       } else {
