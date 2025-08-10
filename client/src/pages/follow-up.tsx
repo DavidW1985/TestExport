@@ -93,13 +93,30 @@ export default function FollowUpPage() {
     },
     onError: (error) => {
       console.error('Follow-up submission error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
+      
+      // Capture comprehensive error details
+      const errorInfo = {
+        type: (error as any)?.constructor?.name || 'Unknown',
+        message: (error as any)?.message || 'Unknown error',
+        timestamp: new Date().toISOString(),
         assessmentId: assessmentState?.assessmentId,
         currentRound: assessmentState?.currentRound,
-        answersCount: Object.keys(answers).length
-      });
+        requestData: {
+          assessmentId: assessmentState?.assessmentId,
+          answers: Object.keys(answers).reduce((acc, key) => {
+            const questionIndex = parseInt(key);
+            if (!isNaN(questionIndex) && assessmentState?.followUpQuestions[questionIndex]) {
+              acc[assessmentState.followUpQuestions[questionIndex].question] = answers[key];
+            }
+            return acc;
+          }, {} as Record<string, string>)
+        },
+        stack: (error as any)?.stack || 'No stack trace',
+      };
+      
+      // Store error info and redirect to debug page
+      sessionStorage.setItem('debugError', JSON.stringify(errorInfo));
+      setLocation('/error-debug');
     },
   });
 
