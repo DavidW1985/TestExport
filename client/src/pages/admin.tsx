@@ -169,9 +169,9 @@ export default function AdminPage() {
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         {getIconForPrompt(editedPrompt.id)}
-                        {editedPrompt.name}
+                        <span className="truncate">{editedPrompt.name}</span>
                       </CardTitle>
-                      <CardDescription>{editedPrompt.description}</CardDescription>
+                      <CardDescription className="truncate">{editedPrompt.description}</CardDescription>
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -266,10 +266,14 @@ export default function AdminPage() {
                           <Label htmlFor="name" className="text-base font-medium">
                             Prompt Name
                           </Label>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            This name appears in the prompt list and header
+                          </p>
                           <Input
                             id="name"
                             value={editedPrompt.name}
                             onChange={(e) => setEditedPrompt({ ...editedPrompt, name: e.target.value })}
+                            placeholder="Enter a descriptive name for this prompt"
                             data-testid="input-name"
                           />
                         </div>
@@ -278,10 +282,14 @@ export default function AdminPage() {
                           <Label htmlFor="description" className="text-base font-medium">
                             Description
                           </Label>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            Brief description of what this prompt does
+                          </p>
                           <Input
                             id="description"
                             value={editedPrompt.description}
                             onChange={(e) => setEditedPrompt({ ...editedPrompt, description: e.target.value })}
+                            placeholder="Describe the purpose of this prompt"
                             data-testid="input-description"
                           />
                         </div>
