@@ -175,9 +175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Follow-up submission error:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : 'Unknown error');
       res.status(500).json({
         success: false,
-        message: "Something went wrong processing your follow-up answers. Please try again."
+        message: "Something went wrong processing your follow-up answers. Please try again.",
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });

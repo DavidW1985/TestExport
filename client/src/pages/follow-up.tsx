@@ -43,7 +43,11 @@ export default function FollowUpPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to submit follow-up answers');
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Server error response:', errorData);
+        throw new Error(`Failed to submit follow-up answers: ${response.status} ${errorData}`);
+      }
       return response.json();
     },
     onSuccess: (data) => {
@@ -128,36 +132,41 @@ export default function FollowUpPage() {
   const getPlaceholderForQuestion = (question: string): string => {
     const lowerQuestion = question.toLowerCase();
     
+    // Timeline/Timing questions (must be first to catch "when do you plan to move")
+    if (lowerQuestion.includes('when') || lowerQuestion.includes('timeline') || lowerQuestion.includes('deadline') || lowerQuestion.includes('plan to move') || lowerQuestion.includes('timeframe')) {
+      return "e.g., Within 6 months, by next summer, or flexible timing depending on visa approval";
+    }
+    
     // Financial questions
-    if (lowerQuestion.includes('income') || lowerQuestion.includes('salary') || lowerQuestion.includes('earn')) {
+    if (lowerQuestion.includes('income') || lowerQuestion.includes('salary') || lowerQuestion.includes('earn') || lowerQuestion.includes('money')) {
       return "e.g., $75,000 USD annually from software development, or €45,000 from consulting work";
     }
-    if (lowerQuestion.includes('saving') || lowerQuestion.includes('budget') || lowerQuestion.includes('cost')) {
+    if (lowerQuestion.includes('saving') || lowerQuestion.includes('budget') || lowerQuestion.includes('cost') || lowerQuestion.includes('afford')) {
       return "e.g., $50,000 saved for the move, or planning to budget $3,000 monthly";
     }
     
     // Visa/immigration questions
-    if (lowerQuestion.includes('visa') || lowerQuestion.includes('permit') || lowerQuestion.includes('citizenship')) {
+    if (lowerQuestion.includes('visa') || lowerQuestion.includes('permit') || lowerQuestion.includes('citizenship') || lowerQuestion.includes('status')) {
       return "e.g., I'm a US citizen looking for work visa, or I have EU citizenship through my parents";
     }
     
     // Work questions
-    if (lowerQuestion.includes('job') || lowerQuestion.includes('work') || lowerQuestion.includes('employer')) {
+    if (lowerQuestion.includes('job') || lowerQuestion.includes('work') || lowerQuestion.includes('employer') || lowerQuestion.includes('career')) {
       return "e.g., Remote software engineer, or looking for marketing roles in tech companies";
     }
     
     // Family questions
-    if (lowerQuestion.includes('family') || lowerQuestion.includes('spouse') || lowerQuestion.includes('children')) {
+    if (lowerQuestion.includes('family') || lowerQuestion.includes('spouse') || lowerQuestion.includes('children') || lowerQuestion.includes('depend')) {
       return "e.g., Married with 2 children ages 8 and 12, or single with elderly parents to consider";
     }
     
     // Housing questions
-    if (lowerQuestion.includes('housing') || lowerQuestion.includes('rent') || lowerQuestion.includes('buy')) {
+    if (lowerQuestion.includes('housing') || lowerQuestion.includes('rent') || lowerQuestion.includes('buy') || lowerQuestion.includes('live') || lowerQuestion.includes('apartment')) {
       return "e.g., Plan to rent 3-bedroom apartment near city center, or buy house in suburbs";
     }
     
     // Education questions
-    if (lowerQuestion.includes('school') || lowerQuestion.includes('education') || lowerQuestion.includes('university')) {
+    if (lowerQuestion.includes('school') || lowerQuestion.includes('education') || lowerQuestion.includes('university') || lowerQuestion.includes('degree')) {
       return "e.g., Need English-speaking international school, or looking at local universities";
     }
     
@@ -166,9 +175,19 @@ export default function FollowUpPage() {
       return "e.g., No ongoing medical needs, or require diabetes medication and regular checkups";
     }
     
-    // Timeline questions
-    if (lowerQuestion.includes('when') || lowerQuestion.includes('timeline') || lowerQuestion.includes('deadline')) {
-      return "e.g., Planning to move in 6 months, or flexible timing depending on visa approval";
+    // Language questions
+    if (lowerQuestion.includes('language') || lowerQuestion.includes('speak') || lowerQuestion.includes('fluent')) {
+      return "e.g., Fluent in English, basic Italian, or willing to learn the local language";
+    }
+    
+    // Goals/motivation questions
+    if (lowerQuestion.includes('why') || lowerQuestion.includes('goal') || lowerQuestion.includes('reason') || lowerQuestion.includes('motivat')) {
+      return "e.g., Better work opportunities, lifestyle change, or family reasons";
+    }
+    
+    // Legal/document questions
+    if (lowerQuestion.includes('legal') || lowerQuestion.includes('document') || lowerQuestion.includes('requirement') || lowerQuestion.includes('process')) {
+      return "e.g., Need help understanding requirements, or have all documents ready";
     }
     
     // Default placeholder
@@ -230,7 +249,7 @@ export default function FollowUpPage() {
                   </>
                 ) : (
                   <>
-                    Complete Assessment
+                    {currentRound >= 3 ? 'Complete Assessment' : 'Continue to Next Round'}
                     <ArrowRight className="h-5 w-5 ml-2" />
                   </>
                 )}
