@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Assessment, type InsertAssessment, type Prompt, type InsertPrompt } from "@shared/schema";
+import { type User, type InsertUser, type Assessment, type InsertAssessment, type Prompt, type InsertPrompt, type LlmLog, type InsertLlmLog } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -13,12 +13,16 @@ export interface IStorage {
   getPrompt(id: string): Promise<Prompt | undefined>;
   createPrompt(prompt: InsertPrompt): Promise<Prompt>;
   updatePrompt(id: string, updates: Partial<Prompt>): Promise<Prompt>;
+  // LLM logging
+  createLlmLog(log: InsertLlmLog): Promise<LlmLog>;
+  getAssessmentLogs(assessmentId: string): Promise<LlmLog[]>;
+  getAllLogs(limit?: number): Promise<LlmLog[]>;
 }
 
 // Import database functionality
 import { db } from "./db";
-import { users, assessments, prompts } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { users, assessments, prompts, llmLogs } from "@shared/schema";
+import { eq, sql, desc } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
@@ -95,6 +99,31 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Prompt not found");
     }
     return prompt;
+  }
+
+  // LLM logging methods
+  async createLlmLog(log: InsertLlmLog): Promise<LlmLog> {
+    const [llmLog] = await db
+      .insert(llmLogs)
+      .values(log)
+      .returning();
+    return llmLog;
+  }
+
+  async getAssessmentLogs(assessmentId: string): Promise<LlmLog[]> {
+    return await db
+      .select()
+      .from(llmLogs)
+      .where(eq(llmLogs.assessmentId, assessmentId))
+      .orderBy(desc(llmLogs.createdAt));
+  }
+
+  async getAllLogs(limit: number = 100): Promise<LlmLog[]> {
+    return await db
+      .select()
+      .from(llmLogs)
+      .orderBy(desc(llmLogs.createdAt))
+      .limit(limit);
   }
 }
 

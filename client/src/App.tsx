@@ -8,6 +8,7 @@ import Assessment from "@/pages/assessment";
 import FollowUpPage from "@/pages/follow-up";
 import SummaryPage from "@/pages/summary";
 import AdminPage from "@/pages/admin";
+import LlmLogsPage from "@/pages/llm-logs";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/follow-up" component={FollowUpPage} />
       <Route path="/summary" component={SummaryPage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/llm-logs" component={LlmLogsPage} />
       <Route component={NotFound} />
     </Switch>
   );
