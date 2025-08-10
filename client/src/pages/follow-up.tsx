@@ -75,6 +75,13 @@ export default function FollowUpPage() {
     },
     onError: (error) => {
       console.error('Follow-up submission error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        assessmentId: assessmentState?.assessmentId,
+        currentRound: assessmentState?.currentRound,
+        answersCount: Object.keys(answers).length
+      });
     },
   });
 
@@ -121,6 +128,13 @@ export default function FollowUpPage() {
       if (answers[index]) {
         formattedAnswers[question.question] = answers[index];
       }
+    });
+
+    console.log('Submitting follow-up:', {
+      assessmentId: assessmentState.assessmentId,
+      currentRound: currentRound,
+      answersCount: Object.keys(formattedAnswers).length,
+      answers: formattedAnswers
     });
 
     submitFollowUpMutation.mutate({

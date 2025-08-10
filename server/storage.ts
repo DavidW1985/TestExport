@@ -52,15 +52,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAssessment(id: string, updates: Partial<Assessment>): Promise<Assessment> {
-    const [assessment] = await db
-      .update(assessments)
-      .set(updates)
-      .where(eq(assessments.id, id))
-      .returning();
-    if (!assessment) {
-      throw new Error("Assessment not found");
+    try {
+      console.log(`Updating assessment ${id} with:`, Object.keys(updates));
+      const [assessment] = await db
+        .update(assessments)
+        .set(updates)
+        .where(eq(assessments.id, id))
+        .returning();
+      if (!assessment) {
+        console.error(`No assessment found with id: ${id}`);
+        throw new Error("Assessment not found");
+      }
+      console.log(`Assessment ${id} updated successfully, current round: ${assessment.current_round}`);
+      return assessment;
+    } catch (error) {
+      console.error(`Database error updating assessment ${id}:`, error);
+      throw error;
     }
-    return assessment;
   }
 
   async getAssessment(id: string): Promise<Assessment | undefined> {
