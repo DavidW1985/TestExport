@@ -92,8 +92,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Submit follow-up answers
+  // Submit follow-up answers - background processing
   app.post("/api/assessments/follow-up", async (req, res) => {
+    try {
+      const { assessmentId, answers } = req.body;
+      
+      if (!assessmentId || !answers) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Assessment ID and answers are required' 
+        });
+      }
+
+      // Mark as processing and return immediately
+      await storage.updateAssessment(assessmentId, {
+        processing_status: 'processing'
+      });
+
+      // Return immediately
+      res.json({
+        success: true,
+        message: 'Processing started',
+        assessmentId,
+        status: 'processing'
+      });
+
+      // Process in background (no await)
+      processFollowUpInBackground(assessmentId, answers);
+
+    } catch (error) {
+      console.error('Follow-up submission error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to start processing'
+      });
+    }
+  });
+
+  // Status check endpoint
+  app.get("/api/assessments/follow-up/:assessmentId/status", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      const assessment = await storage.getAssessment(assessmentId);
+      
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Assessment not found' 
+        });
+      }
+
+      const status = assessment.processing_status || 'idle';
+      
+      if (status === 'completed') {
+        const result = JSON.parse(assessment.processing_result || '{}');
+        return res.json({
+          success: true,
+          status: 'completed',
+          ...result
+        });
+      } else if (status === 'error') {
+        return res.json({
+          success: false,
+          status: 'error',
+          message: assessment.processing_error || 'Processing failed'
+        });
+      } else {
+        return res.json({
+          success: true,
+          status: status
+        });
+      }
+    } catch (error) {
+      console.error('Status check error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to check status'
+      });
+    }
+  });
+
+  // Background processing function
+  async function processFollowUpInBackground(assessmentId: string, answers: any) {
+    try {
+      console.log('=== BACKGROUND PROCESSING STARTED ===');
+      console.log('Assessment ID:', assessmentId);
+      console.log('Answers:', Object.keys(answers).length, 'provided');
+
+      const existingAssessment = await storage.getAssessment(assessmentId);
+      if (!existingAssessment) {
+        throw new Error('Assessment not found');
+      }
+
+      // Extract current categorized data
+      const currentCategories = {
+        goal: existingAssessment.goal || "",
+        finance: existingAssessment.finance || "",
+        family: existingAssessment.family || "",
+        housing: existingAssessment.housing_categorized || "",
+        work: existingAssessment.work || "",
+        immigration: existingAssessment.immigration || "",
+        education: existingAssessment.education || "",
+        tax: existingAssessment.tax || "",
+        healthcare: existingAssessment.healthcare || "",
+        other: existingAssessment.other || "",
+        outstanding_clarifications: existingAssessment.outstanding_clarifications || ""
+      };
+
+      const currentRound = parseInt(existingAssessment.current_round || "1");
+      console.log(`Processing round ${currentRound} follow-up answers`);
+      
+      // Update categories with follow-up answers
+      const updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers, assessmentId, currentRound);
+      console.log(`Categories updated successfully for round ${currentRound}`);
+      
+      const maxRounds = parseInt(existingAssessment.max_rounds || "3");
+      const nextRound = currentRound + 1;
+      console.log(`Current: ${currentRound}, Next: ${nextRound}, Max: ${maxRounds}`);
+
+      let followUpResult: { questions: any[], isComplete: boolean, reasoning: string } = { 
+        questions: [], 
+        isComplete: true, 
+        reasoning: "Assessment complete." 
+      };
+      
+      if (currentRound < maxRounds) {
+        console.log(`Generating follow-up questions for round ${nextRound}`);
+        followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
+        console.log(`Generated ${followUpResult.questions.length} questions for round ${nextRound}`);
+        
+        followUpResult.isComplete = false;
+        followUpResult.reasoning = `Round ${currentRound} complete. Continuing to round ${nextRound} of ${maxRounds}.`;
+      } else {
+        console.log(`Assessment completed after round ${currentRound}`);
+        followUpResult.isComplete = true;
+        followUpResult.reasoning = `Assessment completed after ${currentRound} rounds.`;
+      }
+
+      // Update assessment with results
+      const updates = {
+        goal: updatedCategories.goal,
+        finance: updatedCategories.finance,
+        family: updatedCategories.family,
+        housing_categorized: updatedCategories.housing,
+        work: updatedCategories.work,
+        immigration: updatedCategories.immigration,
+        education: updatedCategories.education,
+        tax: updatedCategories.tax,
+        healthcare: updatedCategories.healthcare,
+        other: updatedCategories.other,
+        outstanding_clarifications: updatedCategories.outstanding_clarifications,
+        current_round: nextRound.toString(),
+        is_complete: followUpResult.isComplete ? "true" : "false",
+        processing_status: 'completed',
+        processing_result: JSON.stringify({
+          success: true,
+          message: 'Follow-up answers processed successfully!',
+          assessmentId,
+          categorizedData: updatedCategories,
+          followUpQuestions: followUpResult.questions,
+          isComplete: followUpResult.isComplete,
+          reasoning: followUpResult.reasoning,
+          currentRound: nextRound
+        })
+      };
+
+      await storage.updateAssessment(assessmentId, updates);
+      console.log(`Assessment ${assessmentId} updated successfully for round ${nextRound}`);
+
+    } catch (error) {
+      console.error('Background processing error:', error);
+      await storage.updateAssessment(assessmentId, {
+        processing_status: 'error',
+        processing_error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  // Original follow-up endpoint (now replaced by background processing above)
+  app.post("/api/assessments/follow-up-original", async (req, res) => {
     try {
       const { assessmentId, answers } = req.body;
       

@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
-import { CheckCircle, Circle, ArrowRight, MessageSquare, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ArrowRight, Loader2, MessageSquare } from 'lucide-react';
 
 interface FollowUpQuestion {
   question: string;
@@ -18,11 +15,9 @@ interface FollowUpQuestion {
 
 interface AssessmentState {
   assessmentId: string;
-  categorizedData: any;
   followUpQuestions: FollowUpQuestion[];
-  isComplete: boolean;
-  reasoning: string;
   currentRound: number;
+  categorizedData: any;
 }
 
 export default function FollowUpPage() {
@@ -31,258 +26,171 @@ export default function FollowUpPage() {
   const [showError, setShowError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<any>(null);
 
-  // Get assessment state from location state or session storage
+  // Get assessment state from session storage
   const assessmentState: AssessmentState | null = JSON.parse(
     sessionStorage.getItem('assessmentState') || 'null'
   );
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  if (!assessmentState) {
+    setLocation('/');
+    return null;
+  }
+
+  const { followUpQuestions, currentRound } = assessmentState;
+
+  // Simple polling function
+  const pollForResult = async (assessmentId: string): Promise<any> => {
+    const maxAttempts = 60; // 5 minutes
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+      console.log(`Polling attempt ${attempts + 1}/${maxAttempts}...`);
+      
+      const response = await fetch(`/api/assessments/follow-up/${assessmentId}/status`);
+      const result = await response.json();
+      
+      if (result.status === 'completed') {
+        return result;
+      } else if (result.status === 'error') {
+        throw new Error(result.message || 'Processing failed');
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
+      attempts++;
+    }
+    
+    throw new Error('Processing timeout');
+  };
 
   const submitFollowUpMutation = useMutation({
     mutationFn: async (data: { assessmentId: string; answers: Record<string, string> }) => {
-      try {
-        console.log('Making fetch request to /api/assessments/follow-up with data:', data);
-        
-        // Use XMLHttpRequest instead of fetch to avoid browser timeout issues
-        const response = await new Promise<Response>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.timeout = 60000; // 60 second timeout
-          
-          xhr.open('POST', '/api/assessments/follow-up');
-          xhr.setRequestHeader('Content-Type', 'application/json');
-          
-          xhr.onload = () => {
-            const response = new Response(xhr.responseText, {
-              status: xhr.status,
-              statusText: xhr.statusText,
-              headers: new Headers(
-                xhr.getAllResponseHeaders()
-                  .split('\r\n')
-                  .filter(Boolean)
-                  .map(header => {
-                    const [key, ...values] = header.split(':');
-                    return [key.trim(), values.join(':').trim()];
-                  })
-              )
-            });
-            resolve(response);
-          };
-          
-          xhr.onerror = () => reject(new Error(`Network error: ${xhr.status} ${xhr.statusText}`));
-          xhr.ontimeout = () => reject(new Error('Request timeout after 60 seconds'));
-          
-          xhr.send(JSON.stringify(data));
-        });
-        
-        console.log('Response received. Status:', response.status, 'OK:', response.ok);
-        
-        // Log response headers for debugging
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-        
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error('Server error response:', errorData);
-          throw new Error(`Server error: ${response.status} ${errorData}`);
-        }
-        
-        // Try to read the response as text first to see what we're getting
-        const responseText = await response.text();
-        console.log('Raw response text:', responseText.substring(0, 200) + '...');
-        
-        let responseData;
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          console.error('Full response text:', responseText);
-          throw new Error('Invalid JSON response from server');
-        }
-        
-        console.log('Response JSON parsed successfully:', responseData);
-        return responseData;
-        
-      } catch (error) {
-        console.error('Fetch error caught:', error);
-        console.error('Error type:', typeof error);
-        console.error('Error name:', error?.constructor?.name);
-        console.error('Error message:', (error as any)?.message);
-        throw error;
+      // Start processing
+      const response = await fetch('/api/assessments/follow-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to start processing: ${response.status}`);
       }
+      
+      console.log('Processing started, now polling...');
+      return await pollForResult(data.assessmentId);
     },
     onSuccess: (data) => {
-      console.log('Follow-up submission successful:', data);
       if (data.isComplete) {
-        console.log('Assessment marked as complete, going to summary');
-        // Assessment is complete, show summary
         sessionStorage.setItem('completedAssessment', JSON.stringify(data));
         setLocation('/summary');
-        setTimeout(() => window.scrollTo(0, 0), 100);
       } else {
-        console.log(`Moving to next round: ${data.currentRound}, questions:`, data.followUpQuestions?.length);
-        // More rounds needed, update state and continue
         const newState = {
-          ...assessmentState!,
+          ...assessmentState,
           followUpQuestions: data.followUpQuestions,
           currentRound: data.currentRound,
           categorizedData: data.categorizedData
         };
         sessionStorage.setItem('assessmentState', JSON.stringify(newState));
         setAnswers({});
-        setCurrentQuestionIndex(0);
-        setTimeout(() => window.scrollTo(0, 0), 100);
+        window.scrollTo(0, 0);
       }
     },
     onError: (error) => {
-      console.error('Follow-up submission error:', error);
-      
-      // Capture comprehensive error details
       const errorInfo = {
         type: (error as any)?.constructor?.name || 'Unknown',
         message: (error as any)?.message || 'Unknown error',
         timestamp: new Date().toISOString(),
         assessmentId: assessmentState?.assessmentId,
         currentRound: assessmentState?.currentRound,
-        requestData: {
-          assessmentId: assessmentState?.assessmentId,
-          answers: Object.keys(answers).reduce((acc, key) => {
-            const questionIndex = parseInt(key);
-            if (!isNaN(questionIndex) && assessmentState?.followUpQuestions[questionIndex]) {
-              acc[assessmentState.followUpQuestions[questionIndex].question] = answers[key];
-            }
-            return acc;
-          }, {} as Record<string, string>)
-        },
-        stack: (error as any)?.stack || 'No stack trace',
+        requestData: { assessmentId: assessmentState?.assessmentId, answers }
       };
       
-      // Show error details directly on this page
       setErrorDetails(errorInfo);
       setShowError(true);
-    },
+      sessionStorage.setItem('debugError', JSON.stringify(errorInfo));
+    }
   });
 
-  if (!assessmentState) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground">No assessment found. Please start over.</p>
-            <Button onClick={() => setLocation('/')} className="mt-4">
-              Start New Assessment
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const { followUpQuestions, currentRound, isComplete } = assessmentState;
-  const progress = ((currentQuestionIndex + Object.keys(answers).length) / followUpQuestions.length) * 100;
-
-  const handleAnswerChange = (questionIndex: number, answer: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionIndex]: answer
-    }));
+  const handleAnswerChange = (index: number, value: string) => {
+    setAnswers(prev => ({ ...prev, [index]: value }));
   };
 
-  const handleNext = () => {
-    if (currentQuestionIndex < followUpQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
-  };
-
-  const handleSubmit = () => {
-    const formattedAnswers: Record<string, string> = {};
-    followUpQuestions.forEach((question, index) => {
-      if (answers[index]) {
-        formattedAnswers[question.question] = answers[index];
-      }
-    });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const submissionData = {
+      assessmentId: assessmentState.assessmentId,
+      answers: followUpQuestions.reduce((acc, question, index) => {
+        if (answers[index]?.trim()) {
+          acc[question.question] = answers[index].trim();
+        }
+        return acc;
+      }, {} as Record<string, string>)
+    };
 
     console.log('Submitting follow-up:', {
-      assessmentId: assessmentState.assessmentId,
-      currentRound: currentRound,
-      answersCount: Object.keys(formattedAnswers).length,
-      answers: formattedAnswers
+      assessmentId: submissionData.assessmentId,
+      currentRound,
+      answersCount: Object.keys(submissionData.answers).length,
+      answers: submissionData.answers
     });
 
-    submitFollowUpMutation.mutate({
-      assessmentId: assessmentState.assessmentId,
-      answers: formattedAnswers
-    });
+    submitFollowUpMutation.mutate(submissionData);
   };
 
   const getPlaceholderForQuestion = (question: string): string => {
     const lowerQuestion = question.toLowerCase();
     
-    // Timeline/Timing questions (must be first to catch "when do you plan to move")
-    if (lowerQuestion.includes('when') || lowerQuestion.includes('timeline') || lowerQuestion.includes('deadline') || lowerQuestion.includes('plan to move') || lowerQuestion.includes('timeframe')) {
-      return "e.g., Within 6 months, by next summer, or flexible timing depending on visa approval";
+    if (lowerQuestion.includes('citizenship') || lowerQuestion.includes('nationality')) {
+      return "e.g., Belgian, German, or dual citizenship";
     }
     
-    // Financial questions
-    if (lowerQuestion.includes('income') || lowerQuestion.includes('salary') || lowerQuestion.includes('earn') || lowerQuestion.includes('money')) {
-      return "e.g., $75,000 USD annually from software development, or €45,000 from consulting work";
-    }
-    if (lowerQuestion.includes('saving') || lowerQuestion.includes('budget') || lowerQuestion.includes('cost') || lowerQuestion.includes('afford')) {
-      return "e.g., $50,000 saved for the move, or planning to budget $3,000 monthly";
+    if (lowerQuestion.includes('timeline') || lowerQuestion.includes('when') || lowerQuestion.includes('move')) {
+      return "e.g., Within 6 months, or by end of 2025";
     }
     
-    // Visa/immigration questions
-    if (lowerQuestion.includes('visa') || lowerQuestion.includes('permit') || lowerQuestion.includes('citizenship') || lowerQuestion.includes('status')) {
-      return "e.g., I'm a US citizen looking for work visa, or I have EU citizenship through my parents";
+    if (lowerQuestion.includes('finance') || lowerQuestion.includes('budget') || lowerQuestion.includes('cost')) {
+      return "e.g., €50,000 budget, or need financing options";
     }
     
-    // Work questions
-    if (lowerQuestion.includes('job') || lowerQuestion.includes('work') || lowerQuestion.includes('employer') || lowerQuestion.includes('career')) {
-      return "e.g., Remote software engineer, or looking for marketing roles in tech companies";
+    if (lowerQuestion.includes('work') || lowerQuestion.includes('job') || lowerQuestion.includes('employment')) {
+      return "e.g., Remote work, job search, or starting a business";
     }
     
-    // Family questions
-    if (lowerQuestion.includes('family') || lowerQuestion.includes('spouse') || lowerQuestion.includes('children') || lowerQuestion.includes('depend')) {
-      return "e.g., Married with 2 children ages 8 and 12, or single with elderly parents to consider";
+    if (lowerQuestion.includes('visa') || lowerQuestion.includes('permit') || lowerQuestion.includes('legal')) {
+      return "e.g., EU passport, work visa needed, or legal requirements unclear";
     }
     
-    // Housing questions
-    if (lowerQuestion.includes('housing') || lowerQuestion.includes('rent') || lowerQuestion.includes('buy') || lowerQuestion.includes('live') || lowerQuestion.includes('apartment')) {
-      return "e.g., Plan to rent 3-bedroom apartment near city center, or buy house in suburbs";
+    if (lowerQuestion.includes('housing') || lowerQuestion.includes('rent') || lowerQuestion.includes('property')) {
+      return "e.g., Rent 3-bedroom house, or buy property near city center";
     }
     
-    // Education questions
-    if (lowerQuestion.includes('school') || lowerQuestion.includes('education') || lowerQuestion.includes('university') || lowerQuestion.includes('degree')) {
-      return "e.g., Need English-speaking international school, or looking at local universities";
+    if (lowerQuestion.includes('family') || lowerQuestion.includes('spouse') || lowerQuestion.includes('children')) {
+      return "e.g., Moving with 2 kids, or spouse will join later";
     }
     
-    // Healthcare questions
+    if (lowerQuestion.includes('school') || lowerQuestion.includes('education') || lowerQuestion.includes('university')) {
+      return "e.g., Need English-speaking school, or looking at universities";
+    }
+    
     if (lowerQuestion.includes('health') || lowerQuestion.includes('medical') || lowerQuestion.includes('insurance')) {
-      return "e.g., No ongoing medical needs, or require diabetes medication and regular checkups";
+      return "e.g., No ongoing needs, or require diabetes medication";
     }
     
-    // Language questions
     if (lowerQuestion.includes('language') || lowerQuestion.includes('speak') || lowerQuestion.includes('fluent')) {
-      return "e.g., Fluent in English, basic Italian, or willing to learn the local language";
+      return "e.g., Fluent English, basic Italian, or willing to learn";
     }
     
-    // Goals/motivation questions
-    if (lowerQuestion.includes('why') || lowerQuestion.includes('goal') || lowerQuestion.includes('reason') || lowerQuestion.includes('motivat')) {
-      return "e.g., Better work opportunities, lifestyle change, or family reasons";
+    if (lowerQuestion.includes('why') || lowerQuestion.includes('goal') || lowerQuestion.includes('reason')) {
+      return "e.g., Better opportunities, lifestyle change, or family reasons";
     }
     
-    // Legal/document questions
-    if (lowerQuestion.includes('legal') || lowerQuestion.includes('document') || lowerQuestion.includes('requirement') || lowerQuestion.includes('process')) {
-      return "e.g., Need help understanding requirements, or have all documents ready";
+    if (lowerQuestion.includes('tax')) {
+      return "e.g., No research done yet, or understand basics";
     }
     
-    // Default placeholder
-    return "Please provide specific details about your situation...";
+    return "Please provide specific details...";
   };
 
   // Show error details if there's an error
@@ -293,66 +201,27 @@ export default function FollowUpPage() {
           <Card className="border-red-200 dark:border-red-800">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl text-red-700 dark:text-red-400">
-                🐛 Bug Details - Load Failed Error
+                🐛 Processing Error
               </CardTitle>
               <CardDescription className="text-lg">
                 Here's what went wrong with the follow-up submission
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <strong>Error Type:</strong> {errorDetails.type}
-              </div>
-              <div>
-                <strong>Message:</strong> {errorDetails.message}
-              </div>
-              <div>
-                <strong>Assessment ID:</strong> {errorDetails.assessmentId}
-              </div>
-              <div>
-                <strong>Current Round:</strong> {errorDetails.currentRound}
-              </div>
-              <div>
-                <strong>Request Data:</strong>
-                <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-auto text-sm mt-2">
-                  {JSON.stringify(errorDetails.requestData, null, 2)}
-                </pre>
-              </div>
+              <div><strong>Error:</strong> {errorDetails.message}</div>
+              <div><strong>Assessment ID:</strong> {errorDetails.assessmentId}</div>
+              <div><strong>Round:</strong> {errorDetails.currentRound}</div>
               <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded border">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
-                  <strong>Note:</strong> This error page will stay visible so you can read all the details. 
-                  The error occurs because the LLM processing takes 18+ seconds but the browser times out earlier.
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  The issue appears to be with long-running LLM processing. The server may still be working in the background.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex gap-4">
                 <Button onClick={() => setShowError(false)} variant="outline">
-                  Go Back to Form
+                  Go Back
                 </Button>
                 <Button onClick={() => setLocation('/')}>
                   Start Over
-                </Button>
-                <Button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(JSON.stringify(errorDetails, null, 2));
-                    alert('Error details copied to clipboard!');
-                  }}
-                  variant="outline"
-                >
-                  Copy Error Details
-                </Button>
-                <Button 
-                  onClick={() => {
-                    const blob = new Blob([JSON.stringify(errorDetails, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `error-details-${new Date().toISOString()}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  variant="outline"
-                >
-                  Download Error Log
                 </Button>
               </div>
             </CardContent>
@@ -367,7 +236,6 @@ export default function FollowUpPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Follow-Up Questions
@@ -402,7 +270,6 @@ export default function FollowUpPage() {
               </div>
             ))}
 
-            {/* Submit Button */}
             <div className="pt-6 border-t">
               <Button
                 onClick={handleSubmit}

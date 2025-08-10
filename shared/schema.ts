@@ -37,6 +37,11 @@ export const assessments = pgTable("assessments", {
   max_rounds: text("max_rounds").default("3"),
   is_complete: text("is_complete").default("false"),
   
+  // Background processing status
+  processing_status: text("processing_status").default("idle"), // idle, processing, completed, error
+  processing_result: text("processing_result"), // JSON result when completed
+  processing_error: text("processing_error"), // Error message if failed
+  
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
