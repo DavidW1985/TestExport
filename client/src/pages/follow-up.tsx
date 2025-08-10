@@ -284,18 +284,41 @@ export default function FollowUpPage() {
                   {JSON.stringify(errorDetails.requestData, null, 2)}
                 </pre>
               </div>
-              <div className="flex gap-4">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded border">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+                  <strong>Note:</strong> This error page will stay visible so you can read all the details. 
+                  The error occurs because the LLM processing takes 18+ seconds but the browser times out earlier.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-4">
                 <Button onClick={() => setShowError(false)} variant="outline">
-                  Go Back
+                  Go Back to Form
                 </Button>
                 <Button onClick={() => setLocation('/')}>
                   Start Over
                 </Button>
                 <Button 
-                  onClick={() => navigator.clipboard.writeText(JSON.stringify(errorDetails, null, 2))}
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(errorDetails, null, 2));
+                    alert('Error details copied to clipboard!');
+                  }}
                   variant="outline"
                 >
                   Copy Error Details
+                </Button>
+                <Button 
+                  onClick={() => {
+                    const blob = new Blob([JSON.stringify(errorDetails, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `error-details-${new Date().toISOString()}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  variant="outline"
+                >
+                  Download Error Log
                 </Button>
               </div>
             </CardContent>
