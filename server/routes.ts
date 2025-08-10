@@ -131,11 +131,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate next round of questions if needed
       let followUpResult: { questions: any[], isComplete: boolean, reasoning: string } = { questions: [], isComplete: true, reasoning: "Assessment complete." };
       
-      if (nextRound <= maxRounds) {
-        console.log(`Generating follow-up questions for round ${nextRound}...`);
+      // Continue generating questions until we reach max rounds
+      // After initial assessment (round 0), we want exactly 3 follow-up rounds
+      if (currentRound < maxRounds) {
+        console.log(`Generating follow-up questions for round ${nextRound} (just completed round ${currentRound} of max ${maxRounds})...`);
         followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
       } else {
-        console.log(`Assessment completed after ${currentRound} rounds (max: ${maxRounds})`);
+        console.log(`Assessment completed! Just finished round ${currentRound} which was the final round (max: ${maxRounds})`);
         followUpResult.isComplete = true;
         followUpResult.reasoning = `Assessment completed after ${currentRound} rounds of follow-up questions.`;
       }
