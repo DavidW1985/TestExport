@@ -198,7 +198,7 @@ export default function FollowUpPage() {
                   value={answers[index] || ''}
                   onChange={(e) => handleAnswerChange(index, e.target.value)}
                   rows={4}
-                  className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 resize-none"
+                  className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 resize-none placeholder:italic placeholder:text-muted-foreground/70"
                   data-testid={`textarea-answer-${index}`}
                 />
                 {!answers[index]?.trim() && (

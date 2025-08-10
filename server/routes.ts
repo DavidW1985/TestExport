@@ -134,7 +134,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (nextRound <= maxRounds) {
         console.log(`Generating follow-up questions for round ${nextRound}...`);
         followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
-
+      } else {
+        console.log(`Assessment completed after ${currentRound} rounds (max: ${maxRounds})`);
+        followUpResult.isComplete = true;
+        followUpResult.reasoning = `Assessment completed after ${currentRound} rounds of follow-up questions.`;
       }
 
       // Update assessment in storage
