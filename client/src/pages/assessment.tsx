@@ -38,12 +38,12 @@ export default function Assessment() {
   const form = useForm<InsertAssessment>({
     resolver: zodResolver(insertAssessmentSchema),
     defaultValues: {
-      destination: "",
-      companions: "",
-      income: "",
-      housing: "",
-      timing: "",
-      priority: "",
+      destination: "Italy (Trento)",
+      companions: "2 kids, ages 10 and 12",
+      income: "€120k from remote software work",
+      housing: "Plan to rent a house in Trento for family",
+      timing: "As soon as possible",
+      priority: "Health issues are the most important concern",
     },
   });
 

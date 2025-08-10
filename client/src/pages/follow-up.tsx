@@ -34,28 +34,7 @@ export default function FollowUpPage() {
     sessionStorage.getItem('assessmentState') || 'null'
   );
 
-  // Pre-fill answers for testing - generates realistic test data based on question content
-  const generateTestAnswer = (question: string): string => {
-    const q = question.toLowerCase();
-    if (q.includes('citizenship') || q.includes('citizen')) return 'Belgian citizen';
-    if (q.includes('timeline') || q.includes('when') || q.includes('moving')) return 'Within 6 months';
-    if (q.includes('tax') || q.includes('obligations')) return 'Yes, I understand the tax implications';
-    if (q.includes('school') || q.includes('education')) return 'Looking at international schools';
-    if (q.includes('health') || q.includes('diabetes') || q.includes('medical')) return 'Have consulted with doctors, need specialist care';
-    if (q.includes('work') || q.includes('employment') || q.includes('job')) return 'Full-time remote software engineer';
-    if (q.includes('visa') || q.includes('permit')) return 'Need work visa guidance';
-    if (q.includes('insurance') || q.includes('coverage')) return 'Need comprehensive health insurance';
-    if (q.includes('language') || q.includes('italian')) return 'Basic Italian, taking classes';
-    if (q.includes('budget') || q.includes('cost') || q.includes('expense')) return '€3000-4000 monthly budget';
-    return 'Yes, need assistance with this';
-  };
-
-  const initialAnswers = assessmentState?.followUpQuestions.reduce((acc, question, index) => {
-    acc[index] = generateTestAnswer(question.question);
-    return acc;
-  }, {} as Record<string, string>) || {};
-
-  const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   const submitFollowUpMutation = useMutation({
