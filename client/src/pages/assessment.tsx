@@ -167,7 +167,7 @@ export default function Assessment() {
               id="destination"
               {...form.register("destination")}
               placeholder="e.g., Toronto, Canada or Barcelona, Spain"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100"
+              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
               data-testid="input-destination"
             />
             {form.formState.errors.destination && (
@@ -187,7 +187,7 @@ export default function Assessment() {
               id="companions"
               {...form.register("companions")}
               placeholder="e.g., Spouse and 2 children (ages 8, 12) or Just myself"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100"
+              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
               data-testid="input-companions"
             />
             {form.formState.errors.companions && (
@@ -207,7 +207,7 @@ export default function Assessment() {
               id="income"
               {...form.register("income")}
               placeholder="e.g., Remote software engineering job or Local marketing role or Starting a cafe"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100"
+              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
               data-testid="input-income"
             />
             {form.formState.errors.income && (
@@ -227,7 +227,7 @@ export default function Assessment() {
               id="housing"
               {...form.register("housing")}
               placeholder="e.g., Rent 2BR apartment downtown or Buy house in suburbs or Stay with family initially"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100"
+              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
               data-testid="input-housing"
             />
             {form.formState.errors.housing && (
@@ -247,7 +247,7 @@ export default function Assessment() {
               id="timing"
               {...form.register("timing")}
               placeholder="e.g., Must move by June 2024 for job or Flexible, anytime in next 2 years"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100"
+              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
               data-testid="input-timing"
             />
             {form.formState.errors.timing && (
@@ -268,7 +268,7 @@ export default function Assessment() {
               {...form.register("priority")}
               rows={4}
               placeholder="Share your biggest concern, goal, or unique situation..."
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 resize-none"
+              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 resize-none placeholder:italic placeholder:text-muted-foreground/70"
               data-testid="textarea-priority"
             />
             <div className="text-sm text-neutral mt-2">
