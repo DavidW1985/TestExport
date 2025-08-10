@@ -157,13 +157,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate next round of questions if needed
       let followUpResult: { questions: any[], isComplete: boolean, reasoning: string } = { questions: [], isComplete: true, reasoning: "Assessment complete." };
       
-      // Continue generating questions until we reach max rounds
-      // After initial assessment (round 0), we want exactly 3 follow-up rounds
+      // FORCE exactly 3 rounds regardless of LLM response
       if (currentRound < maxRounds) {
         console.log(`Generating follow-up questions for round ${nextRound} (just completed round ${currentRound} of max ${maxRounds})...`);
         try {
           followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
           console.log(`Generated ${followUpResult.questions.length} questions for round ${nextRound}`);
+          
+          // OVERRIDE: Force incomplete until we reach max rounds
+          followUpResult.isComplete = false;
+          followUpResult.reasoning = `Round ${currentRound} complete. Continuing to round ${nextRound} of ${maxRounds}.`;
+          
         } catch (error) {
           console.error(`Error generating follow-up questions for round ${nextRound}:`, error);
           throw error;
@@ -217,12 +221,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentRound: nextRound
       });
     } catch (error) {
-      console.error("Follow-up submission error:", error);
-      console.error("Error stack:", error instanceof Error ? error.stack : 'Unknown error');
-      res.status(500).json({
+      console.error("=== FOLLOW-UP ERROR DETAILS ===");
+      console.error("Error:", error);
+      console.error("Error type:", typeof error);
+      console.error("Error constructor:", error?.constructor?.name);
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack available');
+      console.error("Assessment ID:", assessmentId);
+      console.error("Request body:", req.body);
+      console.error("=== END ERROR DETAILS ===");
+      
+      return res.status(500).json({
         success: false,
         message: "Something went wrong processing your follow-up answers. Please try again.",
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
