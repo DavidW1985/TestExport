@@ -73,30 +73,63 @@ export default function PricingPackagesPage() {
   const handleSavePackage = (formData: FormData) => {
     if (!editingPackage) return;
 
-    // Convert "any" values back to null for database consistency
-    const normalizeValue = (value: string | null) => {
+    // Convert "any" values back to null for optional fields only
+    const normalizeOptionalValue = (value: string | null) => {
       return value === 'any' ? null : value;
     };
 
-    const updates = {
-      displayName: formData.get('displayName') as string,
-      description: formData.get('description') as string,
-      price: parseFloat(formData.get('price') as string),
-      targetIncomeLevel: normalizeValue(formData.get('targetIncomeLevel') as string),
-      complexityLevel: formData.get('complexityLevel') as string,
-      familySize: normalizeValue(formData.get('familySize') as string),
-      urgencyLevel: normalizeValue(formData.get('urgencyLevel') as string),
-      destinationTypes: JSON.stringify(formData.get('destinationTypes')?.toString().split(',') || []),
-      includesVisaSupport: formData.get('includesVisaSupport') === 'on',
-      includesHousingSearch: formData.get('includesHousingSearch') === 'on',
-      includesTaxAdvice: formData.get('includesTaxAdvice') === 'on',
-      includesEducationPlanning: formData.get('includesEducationPlanning') === 'on',
-      includesHealthcareGuidance: formData.get('includesHealthcareGuidance') === 'on',
-      includesWorkPermitHelp: formData.get('includesWorkPermitHelp') === 'on',
-      consultationHours: parseInt(formData.get('consultationHours') as string),
-      followUpSessions: parseInt(formData.get('followUpSessions') as string),
-      documentReviews: parseInt(formData.get('documentReviews') as string),
-    };
+    // Build updates object with only non-empty values to avoid overriding existing data
+    const updates: Partial<PricingPackage> = {};
+    
+    const displayName = formData.get('displayName') as string;
+    const description = formData.get('description') as string;
+    const price = formData.get('price') as string;
+    const complexityLevel = formData.get('complexityLevel') as string;
+
+    // Required fields - always include if provided
+    if (displayName && displayName.trim()) updates.displayName = displayName.trim();
+    if (description && description.trim()) updates.description = description.trim();
+    if (price && !isNaN(parseFloat(price))) updates.price = parseFloat(price);
+    
+    // Complexity level is required - ensure it has a valid value
+    if (complexityLevel && ['simple', 'moderate', 'complex'].includes(complexityLevel)) {
+      updates.complexityLevel = complexityLevel;
+    } else if (!editingPackage.complexityLevel) {
+      // Set default if missing
+      updates.complexityLevel = 'simple';
+    }
+
+    // Optional fields can be null
+    const targetIncomeLevel = formData.get('targetIncomeLevel') as string;
+    const familySize = formData.get('familySize') as string;
+    const urgencyLevel = formData.get('urgencyLevel') as string;
+    
+    if (targetIncomeLevel !== undefined) updates.targetIncomeLevel = normalizeOptionalValue(targetIncomeLevel);
+    if (familySize !== undefined) updates.familySize = normalizeOptionalValue(familySize);
+    if (urgencyLevel !== undefined) updates.urgencyLevel = normalizeOptionalValue(urgencyLevel);
+
+    // Service inclusions
+    updates.includesVisaSupport = formData.get('includesVisaSupport') === 'on';
+    updates.includesHousingSearch = formData.get('includesHousingSearch') === 'on';
+    updates.includesTaxAdvice = formData.get('includesTaxAdvice') === 'on';
+    updates.includesEducationPlanning = formData.get('includesEducationPlanning') === 'on';
+    updates.includesHealthcareGuidance = formData.get('includesHealthcareGuidance') === 'on';
+    updates.includesWorkPermitHelp = formData.get('includesWorkPermitHelp') === 'on';
+
+    // Package limits
+    const consultationHours = formData.get('consultationHours') as string;
+    const followUpSessions = formData.get('followUpSessions') as string;
+    const documentReviews = formData.get('documentReviews') as string;
+
+    if (consultationHours && !isNaN(parseInt(consultationHours))) {
+      updates.consultationHours = parseInt(consultationHours);
+    }
+    if (followUpSessions && !isNaN(parseInt(followUpSessions))) {
+      updates.followUpSessions = parseInt(followUpSessions);
+    }
+    if (documentReviews && !isNaN(parseInt(documentReviews))) {
+      updates.documentReviews = parseInt(documentReviews);
+    }
 
     updatePackageMutation.mutate({ id: editingPackage.id, updates });
   };
@@ -354,9 +387,9 @@ export default function PricingPackagesPage() {
                     </div>
                     <div>
                       <Label htmlFor="complexityLevel">Complexity</Label>
-                      <Select name="complexityLevel" defaultValue={editingPackage.complexityLevel}>
+                      <Select name="complexityLevel" defaultValue={editingPackage.complexityLevel || "simple"}>
                         <SelectTrigger data-testid="select-complexity">
-                          <SelectValue />
+                          <SelectValue placeholder="Select complexity" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="simple">Simple</SelectItem>
