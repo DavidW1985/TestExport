@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Search, RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronDown, ChevronRight, Search, RefreshCw, Clock, MapPin, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface LlmInteraction {
@@ -25,6 +26,18 @@ interface LlmInteraction {
   tokensUsed: number | null;
   responseTimeMs: number;
   success: string;
+}
+
+interface AssessmentSummary {
+  id: string;
+  displayName: string;
+  destination: string;
+  companions: string;
+  timing: string;
+  currentRound: string;
+  isComplete: boolean;
+  submittedAt: string;
+  hasLlmLogs: boolean;
 }
 
 interface DebugInfo {
@@ -47,8 +60,16 @@ interface DebugInfo {
 export default function LlmDebugPage() {
   const [assessmentId, setAssessmentId] = useState("");
   const [searchId, setSearchId] = useState("");
+  const [selectedMode, setSelectedMode] = useState<"select" | "manual">("select");
   const { toast } = useToast();
 
+  // Query for assessments list
+  const { data: assessmentsList, isLoading: assessmentsLoading } = useQuery({
+    queryKey: ["/api/debug/assessments"],
+    retry: false
+  });
+
+  // Query for specific assessment debug info
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/debug/llm", searchId],
     enabled: !!searchId,
@@ -66,6 +87,13 @@ export default function LlmDebugPage() {
     }
     setSearchId(assessmentId.trim());
   };
+
+  const handleSelectAssessment = (value: string) => {
+    setAssessmentId(value);
+    setSearchId(value);
+  };
+
+  const assessments = (assessmentsList as any)?.assessments as AssessmentSummary[] || [];
 
   const debugInfo = (data as any)?.data as DebugInfo | undefined;
 
@@ -86,22 +114,107 @@ export default function LlmDebugPage() {
             Assessment Lookup
           </CardTitle>
           <CardDescription>
-            Enter an assessment ID to see detailed LLM processing information
+            Select an assessment from the list or enter a specific ID for detailed LLM processing information
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter assessment ID (e.g., 306ed943-45ce-435e-bead-3cc031d3aabb)"
-              value={assessmentId}
-              onChange={(e) => setAssessmentId(e.target.value)}
-              data-testid="input-assessment-id"
-            />
-            <Button onClick={handleSearch} disabled={isLoading} data-testid="button-search">
-              {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-              Search
-            </Button>
-          </div>
+        <CardContent className="space-y-4">
+          <Tabs value={selectedMode} onValueChange={(value) => setSelectedMode(value as "select" | "manual")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="select">Select from List</TabsTrigger>
+              <TabsTrigger value="manual">Enter ID Manually</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="select" className="space-y-4">
+              {assessmentsLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Loading assessments...
+                </div>
+              ) : assessments.length === 0 ? (
+                <p className="text-muted-foreground">No assessments found</p>
+              ) : (
+                <div className="space-y-2">
+                  <Select onValueChange={handleSelectAssessment} data-testid="select-assessment">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose an assessment to debug..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assessments.map((assessment) => (
+                        <SelectItem key={assessment.id} value={assessment.id}>
+                          <div className="flex items-center gap-2 w-full">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-3 h-3" />
+                                <span className="font-medium">{assessment.destination}</span>
+                                <Badge variant={assessment.isComplete ? "default" : "secondary"}>
+                                  Round {assessment.currentRound}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <Users className="w-3 h-3" />
+                                <span>{assessment.companions}</span>
+                                <Clock className="w-3 h-3 ml-2" />
+                                <span>{new Date(assessment.submittedAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Assessment preview cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
+                    {assessments.slice(0, 9).map((assessment) => (
+                      <Card 
+                        key={assessment.id} 
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleSelectAssessment(assessment.id)}
+                        data-testid={`card-assessment-${assessment.id.substring(0, 8)}`}
+                      >
+                        <CardContent className="p-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                <span className="font-medium text-sm">{assessment.destination}</span>
+                              </div>
+                              <Badge variant={assessment.isComplete ? "default" : "secondary"} className="text-xs">
+                                {assessment.isComplete ? "Complete" : `Round ${assessment.currentRound}`}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Users className="w-3 h-3" />
+                              <span>{assessment.companions}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3" />
+                              <span>{new Date(assessment.submittedAt).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="manual" className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter assessment ID (e.g., 306ed943-45ce-435e-bead-3cc031d3aabb)"
+                  value={assessmentId}
+                  onChange={(e) => setAssessmentId(e.target.value)}
+                  data-testid="input-assessment-id"
+                />
+                <Button onClick={handleSearch} disabled={isLoading} data-testid="button-search">
+                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  Search
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

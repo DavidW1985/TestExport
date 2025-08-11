@@ -35,6 +35,7 @@ export interface IStorage {
   getAssessmentPackageMatch(assessmentId: string): Promise<AssessmentPackageMatch | undefined>;
   // Debug methods
   getLlmLogs(assessmentId: string): Promise<LlmLog[]>;
+  getRecentAssessments(limit?: number): Promise<Assessment[]>;
 }
 
 // Import database functionality
@@ -222,6 +223,14 @@ export class DatabaseStorage implements IStorage {
       .from(llmLogs)
       .where(eq(llmLogs.assessmentId, assessmentId))
       .orderBy(llmLogs.createdAt);
+  }
+
+  async getRecentAssessments(limit: number = 50): Promise<Assessment[]> {
+    return await db
+      .select()
+      .from(assessments)
+      .orderBy(desc(assessments.submittedAt))
+      .limit(limit);
   }
 }
 
