@@ -31,10 +31,19 @@ export default function PricingPackagesPage() {
 
   const updatePackageMutation = useMutation({
     mutationFn: async (data: { id: string; updates: Partial<PricingPackage> }) => {
-      return apiRequest(`/api/pricing-packages/${data.id}`, {
+      const response = await fetch(`/api/pricing-packages/${data.id}`, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(data.updates),
       });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update package: ${response.statusText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/pricing-packages'] });
@@ -64,14 +73,19 @@ export default function PricingPackagesPage() {
   const handleSavePackage = (formData: FormData) => {
     if (!editingPackage) return;
 
+    // Convert "any" values back to null for database consistency
+    const normalizeValue = (value: string | null) => {
+      return value === 'any' ? null : value;
+    };
+
     const updates = {
       displayName: formData.get('displayName') as string,
       description: formData.get('description') as string,
       price: parseFloat(formData.get('price') as string),
-      targetIncomeLevel: formData.get('targetIncomeLevel') as string,
+      targetIncomeLevel: normalizeValue(formData.get('targetIncomeLevel') as string),
       complexityLevel: formData.get('complexityLevel') as string,
-      familySize: formData.get('familySize') as string,
-      urgencyLevel: formData.get('urgencyLevel') as string,
+      familySize: normalizeValue(formData.get('familySize') as string),
+      urgencyLevel: normalizeValue(formData.get('urgencyLevel') as string),
       destinationTypes: JSON.stringify(formData.get('destinationTypes')?.toString().split(',') || []),
       includesVisaSupport: formData.get('includesVisaSupport') === 'on',
       includesHousingSearch: formData.get('includesHousingSearch') === 'on',
@@ -326,12 +340,12 @@ export default function PricingPackagesPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="targetIncomeLevel">Income Level</Label>
-                      <Select name="targetIncomeLevel" defaultValue={editingPackage.targetIncomeLevel || ""}>
+                      <Select name="targetIncomeLevel" defaultValue={editingPackage.targetIncomeLevel || "any"}>
                         <SelectTrigger data-testid="select-income-level">
                           <SelectValue placeholder="Select income level" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Any</SelectItem>
+                          <SelectItem value="any">Any</SelectItem>
                           <SelectItem value="low">Low</SelectItem>
                           <SelectItem value="medium">Medium</SelectItem>
                           <SelectItem value="high">High</SelectItem>
@@ -355,12 +369,12 @@ export default function PricingPackagesPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="familySize">Family Size</Label>
-                      <Select name="familySize" defaultValue={editingPackage.familySize || ""}>
+                      <Select name="familySize" defaultValue={editingPackage.familySize || "any"}>
                         <SelectTrigger data-testid="select-family-size">
                           <SelectValue placeholder="Select family size" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Any</SelectItem>
+                          <SelectItem value="any">Any</SelectItem>
                           <SelectItem value="individual">Individual</SelectItem>
                           <SelectItem value="couple">Couple</SelectItem>
                           <SelectItem value="family">Family</SelectItem>
@@ -369,12 +383,12 @@ export default function PricingPackagesPage() {
                     </div>
                     <div>
                       <Label htmlFor="urgencyLevel">Urgency</Label>
-                      <Select name="urgencyLevel" defaultValue={editingPackage.urgencyLevel || ""}>
+                      <Select name="urgencyLevel" defaultValue={editingPackage.urgencyLevel || "any"}>
                         <SelectTrigger data-testid="select-urgency">
                           <SelectValue placeholder="Select urgency" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Any</SelectItem>
+                          <SelectItem value="any">Any</SelectItem>
                           <SelectItem value="low">Low</SelectItem>
                           <SelectItem value="medium">Medium</SelectItem>
                           <SelectItem value="high">High</SelectItem>
