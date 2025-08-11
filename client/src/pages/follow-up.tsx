@@ -38,6 +38,14 @@ export default function FollowUpPage() {
     return null;
   }
 
+  // If followUpQuestions is missing, redirect to home page
+  if (!assessmentState.followUpQuestions || !Array.isArray(assessmentState.followUpQuestions) || assessmentState.followUpQuestions.length === 0) {
+    console.error('Missing followUpQuestions in assessment state:', assessmentState);
+    sessionStorage.removeItem('assessmentState'); // Clean up corrupted state
+    setLocation('/');
+    return null;
+  }
+
   const { followUpQuestions, currentRound } = assessmentState;
 
   // Simple polling function
@@ -121,7 +129,7 @@ export default function FollowUpPage() {
     
     const submissionData = {
       assessmentId: assessmentState.assessmentId,
-      answers: followUpQuestions.reduce((acc, question, index) => {
+      answers: (followUpQuestions || []).reduce((acc, question, index) => {
         if (answers[index]?.trim()) {
           acc[question.question] = answers[index].trim();
         }
@@ -231,7 +239,9 @@ export default function FollowUpPage() {
     );
   }
 
-  const allAnswered = followUpQuestions.every((_, index) => answers[index]?.trim());
+  const allAnswered = followUpQuestions && followUpQuestions.length > 0 
+    ? followUpQuestions.every((_, index) => answers[index]?.trim())
+    : false;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -247,7 +257,7 @@ export default function FollowUpPage() {
 
         <div className="max-w-2xl mx-auto">
           <form className="space-y-8" data-testid="follow-up-form">
-            {followUpQuestions.map((question, index) => (
+            {followUpQuestions && followUpQuestions.map((question, index) => (
               <div key={index} className="form-group">
                 <Label htmlFor={`question-${index}`} className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
                   <MessageSquare className="h-5 w-5 text-primary mr-2" />
