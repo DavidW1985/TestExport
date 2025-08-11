@@ -67,6 +67,7 @@ export const llmLogs = pgTable("llm_logs", {
   
   // Request details
   promptUsed: text("prompt_used").notNull(), // Full rendered prompt
+  promptTemplate: text("prompt_template"), // Name of the specific prompt template used (e.g., 'categorization', 'followUp', 'update')
   systemPrompt: text("system_prompt").notNull(),
   inputData: text("input_data").notNull(), // JSON of variables used
   
