@@ -1,4 +1,11 @@
-import { type User, type InsertUser, type Assessment, type InsertAssessment, type Prompt, type InsertPrompt, type LlmLog, type InsertLlmLog } from "@shared/schema";
+import { 
+  type User, type InsertUser, 
+  type Assessment, type InsertAssessment, 
+  type Prompt, type InsertPrompt, 
+  type LlmLog, type InsertLlmLog,
+  type PricingPackage, type InsertPricingPackage,
+  type AssessmentPackageMatch, type InsertAssessmentPackageMatch
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -17,11 +24,20 @@ export interface IStorage {
   createLlmLog(log: InsertLlmLog): Promise<LlmLog>;
   getAssessmentLogs(assessmentId: string): Promise<LlmLog[]>;
   getAllLogs(limit?: number): Promise<LlmLog[]>;
+  // Pricing packages
+  getAllPricingPackages(): Promise<PricingPackage[]>;
+  getPricingPackage(id: string): Promise<PricingPackage | undefined>;
+  createPricingPackage(pkg: InsertPricingPackage): Promise<PricingPackage>;
+  updatePricingPackage(id: string, updates: Partial<PricingPackage>): Promise<PricingPackage>;
+  deletePricingPackage(id: string): Promise<void>;
+  // Package matching
+  createPackageMatch(match: InsertAssessmentPackageMatch): Promise<AssessmentPackageMatch>;
+  getAssessmentPackageMatch(assessmentId: string): Promise<AssessmentPackageMatch | undefined>;
 }
 
 // Import database functionality
 import { db } from "./db";
-import { users, assessments, prompts, llmLogs } from "@shared/schema";
+import { users, assessments, prompts, llmLogs, pricingPackages, assessmentPackageMatches } from "@shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
@@ -132,6 +148,69 @@ export class DatabaseStorage implements IStorage {
       .from(llmLogs)
       .orderBy(desc(llmLogs.createdAt))
       .limit(limit);
+  }
+
+  // Pricing packages
+  async getAllPricingPackages(): Promise<PricingPackage[]> {
+    return await db
+      .select()
+      .from(pricingPackages)
+      .where(eq(pricingPackages.isActive, true))
+      .orderBy(pricingPackages.sortOrder);
+  }
+
+  async getPricingPackage(id: string): Promise<PricingPackage | undefined> {
+    const [pkg] = await db
+      .select()
+      .from(pricingPackages)
+      .where(eq(pricingPackages.id, id));
+    return pkg || undefined;
+  }
+
+  async createPricingPackage(insertPackage: InsertPricingPackage): Promise<PricingPackage> {
+    const [pkg] = await db
+      .insert(pricingPackages)
+      .values(insertPackage)
+      .returning();
+    return pkg;
+  }
+
+  async updatePricingPackage(id: string, updates: Partial<PricingPackage>): Promise<PricingPackage> {
+    const [pkg] = await db
+      .update(pricingPackages)
+      .set({...updates, updatedAt: new Date()})
+      .where(eq(pricingPackages.id, id))
+      .returning();
+    if (!pkg) {
+      throw new Error("Pricing package not found");
+    }
+    return pkg;
+  }
+
+  async deletePricingPackage(id: string): Promise<void> {
+    await db
+      .update(pricingPackages)
+      .set({isActive: false})
+      .where(eq(pricingPackages.id, id));
+  }
+
+  // Package matching
+  async createPackageMatch(insertMatch: InsertAssessmentPackageMatch): Promise<AssessmentPackageMatch> {
+    const [match] = await db
+      .insert(assessmentPackageMatches)
+      .values(insertMatch)
+      .returning();
+    return match;
+  }
+
+  async getAssessmentPackageMatch(assessmentId: string): Promise<AssessmentPackageMatch | undefined> {
+    const [match] = await db
+      .select()
+      .from(assessmentPackageMatches)
+      .where(eq(assessmentPackageMatches.assessmentId, assessmentId))
+      .orderBy(desc(assessmentPackageMatches.createdAt))
+      .limit(1);
+    return match || undefined;
   }
 }
 

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, real, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, real, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -85,6 +85,52 @@ export const llmLogs = pgTable("llm_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Pricing packages that can be matched to user context
+export const pricingPackages = pgTable("pricing_packages", {
+  id: varchar("id").primaryKey(),
+  name: text("name").notNull(),
+  displayName: text("display_name").notNull(),
+  description: text("description").notNull(),
+  price: real("price").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  
+  // Package characteristics for matching
+  targetIncomeLevel: text("target_income_level"), // "low", "medium", "high"
+  complexityLevel: text("complexity_level").notNull(), // "simple", "moderate", "complex"
+  familySize: text("family_size"), // "individual", "couple", "family"
+  urgencyLevel: text("urgency_level"), // "low", "medium", "high"
+  destinationTypes: text("destination_types"), // JSON array: ["eu", "us", "asia", "other"]
+  
+  // Service inclusions
+  includesVisaSupport: boolean("includes_visa_support").notNull().default(false),
+  includesHousingSearch: boolean("includes_housing_search").notNull().default(false),
+  includesTaxAdvice: boolean("includes_tax_advice").notNull().default(false),
+  includesEducationPlanning: boolean("includes_education_planning").notNull().default(false),
+  includesHealthcareGuidance: boolean("includes_healthcare_guidance").notNull().default(false),
+  includesWorkPermitHelp: boolean("includes_work_permit_help").notNull().default(false),
+  
+  // Package limits
+  consultationHours: integer("consultation_hours").notNull().default(1),
+  followUpSessions: integer("follow_up_sessions").notNull().default(0),
+  documentReviews: integer("document_reviews").notNull().default(0),
+  
+  // Metadata
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Track which package was matched to each assessment
+export const assessmentPackageMatches = pgTable("assessment_package_matches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assessmentId: varchar("assessment_id").references(() => assessments.id).notNull(),
+  packageId: varchar("package_id").references(() => pricingPackages.id).notNull(),
+  matchScore: real("match_score").notNull(), // 0-1 confidence score
+  matchReasoning: text("match_reasoning").notNull(), // LLM explanation
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -134,3 +180,17 @@ export const insertLlmLogSchema = createInsertSchema(llmLogs).omit({
 });
 export type InsertLlmLog = z.infer<typeof insertLlmLogSchema>;
 export type LlmLog = typeof llmLogs.$inferSelect;
+
+export const insertPricingPackageSchema = createInsertSchema(pricingPackages).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertPricingPackage = z.infer<typeof insertPricingPackageSchema>;
+export type PricingPackage = typeof pricingPackages.$inferSelect;
+
+export const insertAssessmentPackageMatchSchema = createInsertSchema(assessmentPackageMatches).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertAssessmentPackageMatch = z.infer<typeof insertAssessmentPackageMatchSchema>;
+export type AssessmentPackageMatch = typeof assessmentPackageMatches.$inferSelect;
