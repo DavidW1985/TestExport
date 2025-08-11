@@ -74,9 +74,16 @@ export default function Assessment() {
         sessionStorage.setItem('assessmentState', JSON.stringify(assessmentState));
         setLocation('/follow-up');
         setTimeout(() => window.scrollTo(0, 0), 100);
+        console.log("Assessment response received:", {
+          hasFollowUpQuestions: !!data.followUpQuestions,
+          questionsType: Array.isArray(data.followUpQuestions) ? 'array' : typeof data.followUpQuestions,
+          questionsLength: data.followUpQuestions?.length || 0,
+          dataKeys: Object.keys(data)
+        });
+        
         toast({
           title: "Assessment Processed!",
-          description: `We have ${data.followUpQuestions.length} follow-up questions to better understand your needs.`,
+          description: `We have ${data.followUpQuestions?.length || 0} follow-up questions to better understand your needs.`,
         });
       }
     },

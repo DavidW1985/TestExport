@@ -39,6 +39,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Step 3: Generate follow-up questions (with logging)
       console.log("Generating follow-up questions...");
       const followUpResult = await generateFollowUpQuestions(categorizedData, 1, 3, [], initialAssessment.id);
+      
+      // Debug logging for followUpResult
+      console.log("Follow-up result structure:", {
+        hasQuestions: !!followUpResult.questions,
+        questionsType: Array.isArray(followUpResult.questions) ? 'array' : typeof followUpResult.questions,
+        questionsLength: followUpResult.questions?.length || 0,
+        isComplete: followUpResult.isComplete,
+        reasoning: followUpResult.reasoning ? followUpResult.reasoning.substring(0, 100) + '...' : 'No reasoning'
+      });
 
       // Step 4: Update assessment with categorized data
       const assessment = await storage.updateAssessment(initialAssessment.id, {

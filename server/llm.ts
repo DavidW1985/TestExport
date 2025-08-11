@@ -194,7 +194,42 @@ export async function generateFollowUpQuestions(
 
     const responseTime = Date.now() - startTime;
     const rawResponse = response.choices[0].message.content!;
-    const result = JSON.parse(rawResponse) as FollowUpResult;
+    let result: FollowUpResult;
+    
+    try {
+      result = JSON.parse(rawResponse) as FollowUpResult;
+      
+      // Validate the structure and provide defaults
+      if (!result.questions || !Array.isArray(result.questions)) {
+        console.warn("LLM response missing or invalid questions array, providing fallback");
+        result.questions = [];
+      }
+      
+      if (typeof result.isComplete !== 'boolean') {
+        result.isComplete = false;
+      }
+      
+      if (!result.reasoning) {
+        result.reasoning = "Follow-up questions generated successfully.";
+      }
+      
+      console.log("Parsed LLM result:", {
+        questionsCount: result.questions.length,
+        isComplete: result.isComplete,
+        hasReasoning: !!result.reasoning
+      });
+      
+    } catch (parseError) {
+      console.error("Failed to parse LLM response:", parseError);
+      console.error("Raw response:", rawResponse);
+      
+      // Provide fallback structure
+      result = {
+        questions: [],
+        isComplete: true,
+        reasoning: "Failed to parse LLM response. Assessment marked as complete."
+      };
+    }
 
     // Log the interaction
     if (assessmentId) {
