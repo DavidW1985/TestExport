@@ -11,6 +11,7 @@ import AdminPage from "@/pages/admin";
 import LlmLogsPage from "@/pages/llm-logs";
 import ErrorDebugPage from "@/pages/error-debug";
 import PricingPackagesPage from "@/pages/pricing-packages";
+import LlmDebugPage from "@/pages/llm-debug";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/llm-logs" component={LlmLogsPage} />
       <Route path="/pricing-packages" component={PricingPackagesPage} />
       <Route path="/error-debug" component={ErrorDebugPage} />
+      <Route path="/llm-debug" component={LlmDebugPage} />
       <Route component={NotFound} />
     </Switch>
   );

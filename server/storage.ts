@@ -33,6 +33,8 @@ export interface IStorage {
   // Package matching
   createPackageMatch(match: InsertAssessmentPackageMatch): Promise<AssessmentPackageMatch>;
   getAssessmentPackageMatch(assessmentId: string): Promise<AssessmentPackageMatch | undefined>;
+  // Debug methods
+  getLlmLogs(assessmentId: string): Promise<LlmLog[]>;
 }
 
 // Import database functionality
@@ -94,7 +96,7 @@ export class DatabaseStorage implements IStorage {
 
   // Prompt management methods
   async getAllPrompts(): Promise<Prompt[]> {
-    return await db.select().from(prompts).orderBy(prompts.createdAt);
+    return await db.select().from(prompts).orderBy(prompts.id);
   }
 
   async getPrompt(id: string): Promise<Prompt | undefined> {
@@ -211,6 +213,15 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(assessmentPackageMatches.createdAt))
       .limit(1);
     return match || undefined;
+  }
+
+  // LLM logging methods  
+  async getLlmLogs(assessmentId: string): Promise<LlmLog[]> {
+    return await db
+      .select()
+      .from(llmLogs)
+      .where(eq(llmLogs.assessmentId, assessmentId))
+      .orderBy(llmLogs.createdAt);
   }
 }
 
