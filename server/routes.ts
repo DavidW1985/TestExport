@@ -48,6 +48,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isComplete: followUpResult.isComplete,
         reasoning: followUpResult.reasoning ? followUpResult.reasoning.substring(0, 100) + '...' : 'No reasoning'
       });
+      
+      // If we get 0 questions, mark as complete to avoid infinite loops
+      if (followUpResult.questions.length === 0) {
+        console.log("No follow-up questions generated, marking assessment as complete");
+        followUpResult.isComplete = true;
+        followUpResult.reasoning = "Assessment complete - no additional questions needed.";
+      }
 
       // Step 4: Update assessment with categorized data
       const assessment = await storage.updateAssessment(initialAssessment.id, {
