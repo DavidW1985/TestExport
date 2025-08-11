@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Save, RotateCcw, FileText, Cpu, MessageSquare, Activity } from 'lucide-react';
+import { Settings, Save, RotateCcw, FileText, Cpu, MessageSquare, Activity, Package, ExternalLink } from 'lucide-react';
 import { Link } from 'wouter';
 
 interface PromptConfig {
@@ -126,11 +126,17 @@ export default function AdminPage() {
           <p className="text-lg text-gray-600 dark:text-gray-300">
             Edit and configure the prompts used by the AI system
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
             <Link href="/llm-logs">
               <Button variant="outline" className="gap-2" data-testid="button-view-logs">
                 <Activity className="w-4 h-4" />
-                View LLM Interaction Logs
+                View LLM Logs
+              </Button>
+            </Link>
+            <Link href="/pricing-packages">
+              <Button variant="outline" className="gap-2" data-testid="button-pricing-packages">
+                <Package className="w-4 h-4" />
+                Manage Pricing Packages
               </Button>
             </Link>
           </div>
