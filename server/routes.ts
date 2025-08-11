@@ -101,6 +101,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to get list of assessments for selection
+  app.get("/api/debug/assessments", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const assessments = await storage.getRecentAssessments(limit);
+      
+      const assessmentList = assessments.map(assessment => ({
+        id: assessment.id,
+        displayName: `${assessment.destination || 'Unknown'} - ${new Date(assessment.submittedAt).toLocaleString()}`,
+        destination: assessment.destination,
+        companions: assessment.companions,
+        timing: assessment.timing,
+        currentRound: assessment.current_round,
+        isComplete: assessment.is_complete === "true",
+        submittedAt: assessment.submittedAt,
+        hasLlmLogs: true // We'll assume all assessments have logs for now
+      }));
+      
+      res.json({ success: true, assessments: assessmentList });
+    } catch (error) {
+      console.error("Get assessments error:", error);
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // Debug endpoint to get detailed LLM processing info for a specific assessment
   app.get("/api/debug/llm/:assessmentId", async (req, res) => {
     try {
