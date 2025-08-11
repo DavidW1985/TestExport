@@ -101,6 +101,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to get detailed LLM processing info for a specific assessment
+  app.get("/api/debug/llm/:assessmentId", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      
+      // Get assessment data
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ success: false, message: "Assessment not found" });
+      }
+
+      // Get all LLM logs for this assessment
+      const llmLogs = await storage.getLlmLogs(assessmentId);
+      
+      // Get all prompts used
+      const prompts = await storage.getAllPrompts();
+      
+      // Build comprehensive debug info
+      const debugInfo = {
+        assessment: {
+          id: assessment.id,
+          created: assessment.submittedAt,
+          currentRound: assessment.current_round,
+          isComplete: assessment.is_complete === "true",
+          originalInputs: {
+            destination: assessment.destination,
+            companions: assessment.companions,
+            income: assessment.income,
+            housing: assessment.housing,
+            timing: assessment.timing,
+            priority: assessment.priority
+          },
+          categorizedData: {
+            goal: assessment.goal,
+            finance: assessment.finance,
+            family: assessment.family,
+            housing: assessment.housing_categorized,
+            work: assessment.work,
+            immigration: assessment.immigration,
+            education: assessment.education,
+            tax: assessment.tax,
+            healthcare: assessment.healthcare,
+            other: assessment.other,
+            outstanding_clarifications: assessment.outstanding_clarifications
+          }
+        },
+        llmInteractions: llmLogs.map((log: any) => ({
+          id: log.id,
+          operation: log.operation,
+          round: log.round,
+          timestamp: log.created_at,
+          promptTemplate: log.promptTemplate,
+          systemPrompt: log.systemPrompt,
+          userPrompt: log.promptUsed,
+          inputData: JSON.parse(log.inputData || "{}"),
+          rawLlmResponse: log.llmResponse,
+          parsedResult: log.parsedResult ? JSON.parse(log.parsedResult) : null,
+          model: log.model,
+          temperature: log.temperature,
+          tokensUsed: log.tokensUsed,
+          responseTimeMs: log.responseTimeMs,
+          success: log.success
+        })).sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+        availablePrompts: prompts.map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.description
+        }))
+      };
+      
+      res.json({ success: true, data: debugInfo });
+    } catch (error) {
+      console.error("LLM Debug error:", error);
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // Debug endpoint to test API
   app.get("/api/debug/test", async (req, res) => {
     try {
