@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,8 @@ import {
   Shield,
   Phone,
   Mail,
-  ArrowRight
+  ArrowRight,
+  Package
 } from 'lucide-react';
 
 interface CompletedAssessment {
@@ -55,6 +57,12 @@ export default function SummaryPage() {
       setCompletedAssessment(JSON.parse(assessmentData));
     }
   }, []);
+
+  // Fetch package match for the completed assessment
+  const { data: packageMatch } = useQuery({
+    queryKey: ['/api/assessments', completedAssessment?.assessmentId, 'package-match'],
+    enabled: !!completedAssessment?.assessmentId,
+  });
 
   if (!completedAssessment) {
     return (
@@ -188,6 +196,100 @@ export default function SummaryPage() {
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                   {categorizedData.other}
                 </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Package Recommendation Section */}
+          {packageMatch?.success && packageMatch.package && (
+            <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 shadow-lg">
+              <CardHeader>
+                <div className="flex items-center space-x-2">
+                  <Package className="w-6 h-6 text-primary" />
+                  <CardTitle>Recommended Emigration Package</CardTitle>
+                </div>
+                <CardDescription>
+                  Based on your assessment, we recommend the following service package
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold">{packageMatch.package.displayName}</h3>
+                      <p className="text-muted-foreground">{packageMatch.package.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-primary">${packageMatch.package.price}</div>
+                      <div className="text-sm text-muted-foreground">{packageMatch.package.currency}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Star className="w-4 h-4 text-yellow-500" />
+                    <span className="text-sm font-medium">
+                      {Math.round(packageMatch.match.matchScore * 100)}% match confidence
+                    </span>
+                  </div>
+
+                  <div className="border-l-4 border-primary/30 pl-4 py-2 bg-primary/5 rounded-r">
+                    <p className="text-sm">{packageMatch.match.matchReasoning}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-2">
+                      <div className="font-medium">Package Includes:</div>
+                      {packageMatch.package.includesVisaSupport && (
+                        <div className="flex items-center space-x-1">
+                          <Shield className="w-3 h-3 text-green-600" />
+                          <span>Visa Support</span>
+                        </div>
+                      )}
+                      {packageMatch.package.includesHousingSearch && (
+                        <div className="flex items-center space-x-1">
+                          <Home className="w-3 h-3 text-green-600" />
+                          <span>Housing Search</span>
+                        </div>
+                      )}
+                      {packageMatch.package.includesTaxAdvice && (
+                        <div className="flex items-center space-x-1">
+                          <Scale className="w-3 h-3 text-green-600" />
+                          <span>Tax Advice</span>
+                        </div>
+                      )}
+                      {packageMatch.package.includesEducationPlanning && (
+                        <div className="flex items-center space-x-1">
+                          <GraduationCap className="w-3 h-3 text-green-600" />
+                          <span>Education Planning</span>
+                        </div>
+                      )}
+                      {packageMatch.package.includesHealthcareGuidance && (
+                        <div className="flex items-center space-x-1">
+                          <HeartHandshake className="w-3 h-3 text-green-600" />
+                          <span>Healthcare Guidance</span>
+                        </div>
+                      )}
+                      {packageMatch.package.includesWorkPermitHelp && (
+                        <div className="flex items-center space-x-1">
+                          <Briefcase className="w-3 h-3 text-green-600" />
+                          <span>Work Permit Help</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="font-medium">Service Limits:</div>
+                      <div>Consultation: {packageMatch.package.consultationHours} hours</div>
+                      <div>Follow-ups: {packageMatch.package.followUpSessions} sessions</div>
+                      <div>Reviews: {packageMatch.package.documentReviews} documents</div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <Button size="lg" className="w-full" data-testid="button-select-package">
+                      Select This Package <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

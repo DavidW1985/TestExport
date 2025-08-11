@@ -1,9 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAssessmentSchema } from "@shared/schema";
+import { insertAssessmentSchema, insertPricingPackageSchema } from "@shared/schema";
 import { categorizeAssessment, generateFollowUpQuestions, updateCategoriesWithFollowUp } from "./llm";
 import { PromptManager, type PromptConfig } from "./prompts";
+import { seedPricingPackages } from "./seed-packages";
+import { matchUserToPackage, getPackageMatchForAssessment } from "./package-matching";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -227,6 +229,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Assessment completed after round ${currentRound}`);
         followUpResult.isComplete = true;
         followUpResult.reasoning = `Assessment completed after ${currentRound} rounds.`;
+        
+        // Generate package recommendation when assessment is complete
+        try {
+          const packageMatch = await matchUserToPackage(existingAssessment, updatedCategories, assessmentId);
+          console.log(`Package matched: ${packageMatch.recommendedPackageId} with score ${packageMatch.matchScore}`);
+        } catch (error) {
+          console.error('Error matching package:', error);
+        }
       }
 
       // Update assessment with results
@@ -570,6 +580,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ success: false, message: "Failed to retrieve assessment logs" });
     }
   });
+
+  // Pricing Packages API routes
+  app.get("/api/pricing-packages", async (req, res) => {
+    try {
+      const packages = await storage.getAllPricingPackages();
+      res.json({ success: true, packages });
+    } catch (error) {
+      console.error("Error fetching pricing packages:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to fetch pricing packages" 
+      });
+    }
+  });
+
+  app.get("/api/pricing-packages/:id", async (req, res) => {
+    try {
+      const pkg = await storage.getPricingPackage(req.params.id);
+      if (!pkg) {
+        return res.status(404).json({ success: false, error: "Pricing package not found" });
+      }
+      res.json({ success: true, package: pkg });
+    } catch (error) {
+      console.error("Error fetching pricing package:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to fetch pricing package" 
+      });
+    }
+  });
+
+  app.post("/api/pricing-packages", async (req, res) => {
+    try {
+      const validatedData = insertPricingPackageSchema.parse(req.body);
+      const pkg = await storage.createPricingPackage(validatedData);
+      res.json({ success: true, package: pkg, message: "Pricing package created successfully" });
+    } catch (error) {
+      console.error("Error creating pricing package:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ 
+          success: false, 
+          error: "Validation error", 
+          details: error.errors 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: error instanceof Error ? error.message : "Failed to create pricing package" 
+        });
+      }
+    }
+  });
+
+  app.put("/api/pricing-packages/:id", async (req, res) => {
+    try {
+      const updates = req.body;
+      const pkg = await storage.updatePricingPackage(req.params.id, updates);
+      res.json({ success: true, package: pkg, message: "Pricing package updated successfully" });
+    } catch (error) {
+      console.error("Error updating pricing package:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to update pricing package" 
+      });
+    }
+  });
+
+  app.delete("/api/pricing-packages/:id", async (req, res) => {
+    try {
+      await storage.deletePricingPackage(req.params.id);
+      res.json({ success: true, message: "Pricing package deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting pricing package:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to delete pricing package" 
+      });
+    }
+  });
+
+  // Package matching API routes
+  app.get("/api/assessments/:id/package-match", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await getPackageMatchForAssessment(id);
+      
+      if (!result) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "No package match found for this assessment" 
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        match: result.match,
+        package: result.package
+      });
+    } catch (error) {
+      console.error("Error getting package match:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to get package match" 
+      });
+    }
+  });
+
+  app.post("/api/assessments/:id/match-package", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const assessment = await storage.getAssessment(id);
+      
+      if (!assessment) {
+        return res.status(404).json({ success: false, error: "Assessment not found" });
+      }
+
+      // Extract categorized data from assessment
+      const categorizedData = {
+        goal: assessment.goal || "",
+        finance: assessment.finance || "",
+        family: assessment.family || "",
+        housing: assessment.housing_categorized || "",
+        work: assessment.work || "",
+        immigration: assessment.immigration || "",
+        education: assessment.education || "",
+        tax: assessment.tax || "",
+        healthcare: assessment.healthcare || "",
+        other: assessment.other || "",
+        outstanding_clarifications: assessment.outstanding_clarifications || ""
+      };
+
+      const matchResult = await matchUserToPackage(assessment, categorizedData, id);
+      res.json({ 
+        success: true, 
+        recommendation: matchResult,
+        message: "Package recommendation generated successfully" 
+      });
+    } catch (error) {
+      console.error("Error matching package:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to match package" 
+      });
+    }
+  });
+
+  // Seed pricing packages on startup
+  await seedPricingPackages();
 
   const httpServer = createServer(app);
   return httpServer;

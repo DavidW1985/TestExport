@@ -10,6 +10,7 @@ import SummaryPage from "@/pages/summary";
 import AdminPage from "@/pages/admin";
 import LlmLogsPage from "@/pages/llm-logs";
 import ErrorDebugPage from "@/pages/error-debug";
+import PricingPackagesPage from "@/pages/pricing-packages";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/summary" component={SummaryPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/llm-logs" component={LlmLogsPage} />
+      <Route path="/pricing-packages" component={PricingPackagesPage} />
       <Route path="/error-debug" component={ErrorDebugPage} />
       <Route component={NotFound} />
     </Switch>
