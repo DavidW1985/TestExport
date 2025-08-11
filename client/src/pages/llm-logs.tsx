@@ -229,6 +229,11 @@ export default function LlmLogsPage() {
                                 <Badge className={getOperationColor(log.operation)}>
                                   {log.operation}
                                 </Badge>
+                                {log.promptTemplate && (
+                                  <Badge variant="outline" data-testid={`badge-prompt-${log.id}`}>
+                                    {log.promptTemplate}
+                                  </Badge>
+                                )}
                                 <Badge className={getStatusColor(log.success)}>
                                   {log.success === "true" ? "Success" : "Error"}
                                 </Badge>

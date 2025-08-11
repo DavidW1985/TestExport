@@ -105,6 +105,7 @@ export async function categorizeAssessment(
         operation: "categorize",
         round: 1,
         promptUsed: userPrompt,
+        promptTemplate: promptConfig.name, // Show which specific prompt was used
         systemPrompt: systemPrompt.userPrompt,
         inputData: JSON.stringify(inputData),
         llmResponse: rawResponse,
@@ -128,6 +129,7 @@ export async function categorizeAssessment(
         operation: "categorize",
         round: 1,
         promptUsed: userPrompt,
+        promptTemplate: promptConfig.name, // Show which specific prompt was used
         systemPrompt: systemPrompt.userPrompt,
         inputData: JSON.stringify(inputData),
         llmResponse: "",
@@ -201,6 +203,7 @@ export async function generateFollowUpQuestions(
         operation: "followup",
         round: currentRound,
         promptUsed: userPrompt,
+        promptTemplate: promptConfig.name, // Show which specific prompt was used
         systemPrompt: systemPrompt.userPrompt,
         inputData: JSON.stringify(inputData),
         llmResponse: rawResponse,
@@ -224,6 +227,7 @@ export async function generateFollowUpQuestions(
         operation: "followup",
         round: currentRound,
         promptUsed: userPrompt,
+        promptTemplate: promptConfig.name, // Show which specific prompt was used
         systemPrompt: systemPrompt.userPrompt,
         inputData: JSON.stringify(inputData),
         llmResponse: "",
@@ -294,6 +298,7 @@ export async function updateCategoriesWithFollowUp(
         operation: "update",
         round: currentRound || 1,
         promptUsed: userPrompt,
+        promptTemplate: promptConfig.name, // Show which specific prompt was used
         systemPrompt: systemPrompt.userPrompt,
         inputData: JSON.stringify(inputData),
         llmResponse: rawResponse,
@@ -317,6 +322,7 @@ export async function updateCategoriesWithFollowUp(
         operation: "update",
         round: currentRound || 1,
         promptUsed: userPrompt,
+        promptTemplate: promptConfig.name, // Show which specific prompt was used
         systemPrompt: systemPrompt.userPrompt,
         inputData: JSON.stringify(inputData),
         llmResponse: "",
