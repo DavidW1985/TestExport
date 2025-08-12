@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Shield, 
   Clock, 
@@ -27,25 +28,50 @@ import {
   Lock,
   GraduationCap,
   Gauge,
-  TrendingUp
+  TrendingUp,
+  MapPin,
+  Plane
 } from "lucide-react";
+
+// Popular countries for emigration
+const POPULAR_COUNTRIES = [
+  "United States", "Canada", "United Kingdom", "Germany", "Australia", 
+  "Netherlands", "Switzerland", "France", "Italy", "Spain", "Portugal", 
+  "Sweden", "Norway", "Denmark", "Austria", "Belgium", "Ireland", 
+  "New Zealand", "Japan", "Singapore", "United Arab Emirates", "Other"
+];
+
+// Rotating example hints for context field
+const CONTEXT_EXAMPLES = [
+  "Ex: 'EU citizen, target October, need school options near city center, lease first.'",
+  "Ex: 'Software engineer, remote work approved, wife is teacher, need visa guidance.'", 
+  "Ex: 'Family of 4, kids ages 8&12, budget €200k house, prefer suburbs.'",
+  "Ex: 'Retiring in 2 years, health concerns, warm climate preferred, simple process.'",
+  "Ex: 'Startup founder, need business visa, tech hub location, fast timeline.'"
+];
 
 export default function Assessment() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [formProgress, setFormProgress] = useState(33);
+  const [currentExample, setCurrentExample] = useState(0);
   
   const form = useForm<InsertAssessment>({
     resolver: zodResolver(insertAssessmentSchema),
     defaultValues: {
-      destination: "Italy (Trento)",
-      companions: "2 kids, ages 10 and 12",
-      income: "€120k from remote software work",
-      housing: "Plan to rent a house in Trento for family",
-      timing: "As soon as possible",
-      priority: "Health issues are the most important concern",
+      movingFrom: "",
+      movingTo: "",
+      context: "",
     },
   });
+
+  // Rotate example hints every 4 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentExample((prev) => (prev + 1) % CONTEXT_EXAMPLES.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const submitAssessment = useMutation({
     mutationFn: async (data: InsertAssessment) => {
@@ -164,132 +190,123 @@ export default function Assessment() {
         </div>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" data-testid="assessment-form">
-          {/* Question 1: Destination */}
+          {/* Question 1: Where are you moving from? */}
           <div className="form-group">
-            <Label htmlFor="destination" className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
-              <Globe className="h-5 w-5 text-primary mr-2" />
-              Where are you emigrating to?
+            <Label htmlFor="movingFrom" className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
+              <Plane className="h-5 w-5 text-primary mr-2" />
+              Where are you moving from?
             </Label>
-            <Input 
-              id="destination"
-              {...form.register("destination")}
-              placeholder="e.g., Toronto, Canada or Barcelona, Spain"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
-              data-testid="input-destination"
-            />
-            {form.formState.errors.destination && (
-              <p className="text-error text-sm mt-2" data-testid="error-destination">
-                {form.formState.errors.destination.message}
+            <div className="space-y-3">
+              <Controller
+                name="movingFrom"
+                control={form.control}
+                render={({ field }) => (
+                  <Select onValueChange={(value) => {
+                    if (value === "Other") {
+                      field.onChange("");
+                    } else {
+                      field.onChange(value);
+                    }
+                  }} value={field.value}>
+                    <SelectTrigger className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100">
+                      <SelectValue placeholder="Netherlands (Amsterdam)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POPULAR_COUNTRIES.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {(form.watch("movingFrom") === "Other" || !POPULAR_COUNTRIES.includes(form.watch("movingFrom"))) && (
+                <Input
+                  placeholder="Enter your country and optional city"
+                  value={form.watch("movingFrom")}
+                  onChange={(e) => form.setValue("movingFrom", e.target.value)}
+                  className="text-lg py-4 px-4 border-2 focus:border-primary placeholder:italic placeholder:text-muted-foreground/70"
+                />
+              )}
+            </div>
+            {form.formState.errors.movingFrom && (
+              <p className="text-error text-sm mt-2" data-testid="error-moving-from">
+                {form.formState.errors.movingFrom.message}
               </p>
             )}
           </div>
 
-          {/* Question 2: Companions */}
+          {/* Question 2: Where are you moving to? */}
           <div className="form-group">
-            <Label htmlFor="companions" className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
-              <Users className="h-5 w-5 text-primary mr-2" />
-              Who's moving with you?
+            <Label htmlFor="movingTo" className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
+              <MapPin className="h-5 w-5 text-primary mr-2" />
+              Where are you moving to?
             </Label>
-            <Input 
-              id="companions"
-              {...form.register("companions")}
-              placeholder="e.g., Spouse and 2 children (ages 8, 12) or Just myself"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
-              data-testid="input-companions"
-            />
-            {form.formState.errors.companions && (
-              <p className="text-error text-sm mt-2" data-testid="error-companions">
-                {form.formState.errors.companions.message}
+            <div className="space-y-3">
+              <Controller
+                name="movingTo"
+                control={form.control}
+                render={({ field }) => (
+                  <Select onValueChange={(value) => {
+                    if (value === "Other") {
+                      field.onChange("");
+                    } else {
+                      field.onChange(value);
+                    }
+                  }} value={field.value}>
+                    <SelectTrigger className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100">
+                      <SelectValue placeholder="Italy (Rome)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POPULAR_COUNTRIES.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {(form.watch("movingTo") === "Other" || !POPULAR_COUNTRIES.includes(form.watch("movingTo"))) && (
+                <Input
+                  placeholder="Enter your destination country and optional city/region"
+                  value={form.watch("movingTo")}
+                  onChange={(e) => form.setValue("movingTo", e.target.value)}
+                  className="text-lg py-4 px-4 border-2 focus:border-primary placeholder:italic placeholder:text-muted-foreground/70"
+                />
+              )}
+            </div>
+            {form.formState.errors.movingTo && (
+              <p className="text-error text-sm mt-2" data-testid="error-moving-to">
+                {form.formState.errors.movingTo.message}
               </p>
             )}
           </div>
 
-          {/* Question 3: Income Source */}
+          {/* Question 3: Context */}
           <div className="form-group">
-            <Label htmlFor="income" className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
-              <Briefcase className="h-5 w-5 text-primary mr-2" />
-              Main income source in new location?
-            </Label>
-            <Input 
-              id="income"
-              {...form.register("income")}
-              placeholder="e.g., Remote software engineering job or Local marketing role or Starting a cafe"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
-              data-testid="input-income"
-            />
-            {form.formState.errors.income && (
-              <p className="text-error text-sm mt-2" data-testid="error-income">
-                {form.formState.errors.income.message}
-              </p>
-            )}
-          </div>
-
-          {/* Question 4: Housing Plan */}
-          <div className="form-group">
-            <Label htmlFor="housing" className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
-              <Home className="h-5 w-5 text-primary mr-2" />
-              Housing plan?
-            </Label>
-            <Input 
-              id="housing"
-              {...form.register("housing")}
-              placeholder="e.g., Rent 2BR apartment downtown or Buy house in suburbs or Stay with family initially"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
-              data-testid="input-housing"
-            />
-            {form.formState.errors.housing && (
-              <p className="text-error text-sm mt-2" data-testid="error-housing">
-                {form.formState.errors.housing.message}
-              </p>
-            )}
-          </div>
-
-          {/* Question 5: Timing */}
-          <div className="form-group">
-            <Label htmlFor="timing" className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
-              <Calendar className="h-5 w-5 text-primary mr-2" />
-              Move timing & flexibility?
-            </Label>
-            <Input 
-              id="timing"
-              {...form.register("timing")}
-              placeholder="e.g., Must move by June 2024 for job or Flexible, anytime in next 2 years"
-              className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 placeholder:italic placeholder:text-muted-foreground/70"
-              data-testid="input-timing"
-            />
-            {form.formState.errors.timing && (
-              <p className="text-error text-sm mt-2" data-testid="error-timing">
-                {form.formState.errors.timing.message}
-              </p>
-            )}
-          </div>
-
-          {/* Question 6: Most Important */}
-          <div className="form-group">
-            <Label htmlFor="priority" className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
+            <Label htmlFor="context" className="block text-lg font-semibold text-text-primary mb-3 flex items-center">
               <Star className="h-5 w-5 text-primary mr-2" />
-              Most important thing for us to know?
+              Context (anything that helps us help you fast)
             </Label>
             <Textarea 
-              id="priority"
-              {...form.register("priority")}
+              id="context"
+              {...form.register("context")}
               rows={4}
-              placeholder="Share your biggest concern, goal, or unique situation..."
+              placeholder="Mention timing, who's moving, work setup, visas, constraints..."
               className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 resize-none placeholder:italic placeholder:text-muted-foreground/70"
-              data-testid="textarea-priority"
+              data-testid="textarea-context"
             />
             <div className="text-sm text-neutral mt-2">
-              <p className="mb-1 font-medium">Examples:</p>
-              <ul className="text-sm space-y-1">
-                <li>• "Worried about healthcare coverage during transition"</li>
-                <li>• "Need to maintain US business while living in Portugal"</li>
-                <li>• "Children's education and school enrollment timeline"</li>
-                <li>• "Pet relocation requirements and costs"</li>
-              </ul>
+              <p className="font-medium mb-1">Mention timing, who's moving, work setup, visas, constraints.</p>
+              <div className="flex items-center gap-2 transition-all duration-500">
+                <span className="opacity-70">{CONTEXT_EXAMPLES[currentExample]}</span>
+              </div>
             </div>
-            {form.formState.errors.priority && (
-              <p className="text-error text-sm mt-2" data-testid="error-priority">
-                {form.formState.errors.priority.message}
+            {form.formState.errors.context && (
+              <p className="text-error text-sm mt-2" data-testid="error-context">
+                {form.formState.errors.context.message}
               </p>
             )}
           </div>
