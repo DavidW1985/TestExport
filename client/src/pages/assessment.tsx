@@ -12,6 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { 
   Shield, 
   Clock, 
@@ -33,28 +37,48 @@ import {
   Plane
 } from "lucide-react";
 
-// Popular countries for emigration
-const POPULAR_COUNTRIES = [
-  "United States", "Canada", "United Kingdom", "Germany", "Australia", 
-  "Netherlands", "Switzerland", "France", "Italy", "Spain", "Portugal", 
-  "Sweden", "Norway", "Denmark", "Austria", "Belgium", "Ireland", 
-  "New Zealand", "Japan", "Singapore", "United Arab Emirates", "Other"
+// Comprehensive country list for emigration
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+  "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
+  "Cambodia", "Cameroon", "Canada", "Cape Verde", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic",
+  "Denmark", "Djibouti", "Dominica", "Dominican Republic",
+  "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+  "Fiji", "Finland", "France",
+  "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
+  "Haiti", "Honduras", "Hungary",
+  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast",
+  "Jamaica", "Japan", "Jordan",
+  "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan",
+  "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+  "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar",
+  "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway",
+  "Oman",
+  "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+  "Qatar",
+  "Romania", "Russia", "Rwanda",
+  "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
+  "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
+  "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan",
+  "Vanuatu", "Vatican City", "Venezuela", "Vietnam",
+  "Yemen",
+  "Zambia", "Zimbabwe"
 ];
 
-// Rotating example hints for context field
+// Static example hints for context field
 const CONTEXT_EXAMPLES = [
   "Ex: 'EU citizen, target October, need school options near city center, lease first.'",
-  "Ex: 'Software engineer, remote work approved, wife is teacher, need visa guidance.'", 
-  "Ex: 'Family of 4, kids ages 8&12, budget €200k house, prefer suburbs.'",
-  "Ex: 'Retiring in 2 years, health concerns, warm climate preferred, simple process.'",
-  "Ex: 'Startup founder, need business visa, tech hub location, fast timeline.'"
+  "Ex: 'Software engineer, remote work approved, wife is teacher, need visa guidance.'"
 ];
 
 export default function Assessment() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [formProgress, setFormProgress] = useState(33);
-  const [currentExample, setCurrentExample] = useState(0);
+  const [movingFromOpen, setMovingFromOpen] = useState(false);
+  const [movingToOpen, setMovingToOpen] = useState(false);
+  const [movingFromCity, setMovingFromCity] = useState("");
+  const [movingToCity, setMovingToCity] = useState("");
   
   const form = useForm<InsertAssessment>({
     resolver: zodResolver(insertAssessmentSchema),
@@ -64,14 +88,6 @@ export default function Assessment() {
       context: "",
     },
   });
-
-  // Rotate example hints every 4 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentExample((prev) => (prev + 1) % CONTEXT_EXAMPLES.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
 
   const submitAssessment = useMutation({
     mutationFn: async (data: InsertAssessment) => {
@@ -123,7 +139,17 @@ export default function Assessment() {
   });
 
   const onSubmit = (data: InsertAssessment) => {
-    submitAssessment.mutate(data);
+    // Combine country and city information
+    const movingFromFull = data.movingFrom + (movingFromCity ? ` (${movingFromCity})` : '');
+    const movingToFull = data.movingTo + (movingToCity ? ` (${movingToCity})` : '');
+    
+    const submissionData = {
+      ...data,
+      movingFrom: movingFromFull,
+      movingTo: movingToFull,
+    };
+    
+    submitAssessment.mutate(submissionData);
   };
 
   // Update progress as user fills out form
@@ -201,34 +227,57 @@ export default function Assessment() {
                 name="movingFrom"
                 control={form.control}
                 render={({ field }) => (
-                  <Select onValueChange={(value) => {
-                    if (value === "Other") {
-                      field.onChange("");
-                    } else {
-                      field.onChange(value);
-                    }
-                  }} value={field.value}>
-                    <SelectTrigger className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100">
-                      <SelectValue placeholder="Netherlands (Amsterdam)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {POPULAR_COUNTRIES.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={movingFromOpen} onOpenChange={setMovingFromOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={movingFromOpen}
+                        className="w-full justify-between text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 h-auto"
+                        data-testid="select-moving-from"
+                      >
+                        {field.value || "Netherlands"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search countries..." />
+                        <CommandList>
+                          <CommandEmpty>No country found.</CommandEmpty>
+                          <CommandGroup>
+                            {COUNTRIES.map((country) => (
+                              <CommandItem
+                                key={country}
+                                value={country}
+                                onSelect={() => {
+                                  field.onChange(country);
+                                  setMovingFromOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === country ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {country}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 )}
               />
-              {(form.watch("movingFrom") === "Other" || !POPULAR_COUNTRIES.includes(form.watch("movingFrom"))) && (
-                <Input
-                  placeholder="Enter your country and optional city"
-                  value={form.watch("movingFrom")}
-                  onChange={(e) => form.setValue("movingFrom", e.target.value)}
-                  className="text-lg py-4 px-4 border-2 focus:border-primary placeholder:italic placeholder:text-muted-foreground/70"
-                />
-              )}
+              <Input
+                placeholder="City or region (optional)"
+                value={movingFromCity}
+                onChange={(e) => setMovingFromCity(e.target.value)}
+                className="text-lg py-3 px-4 border-2 focus:border-primary placeholder:italic placeholder:text-muted-foreground/70"
+                data-testid="input-moving-from-city"
+              />
             </div>
             {form.formState.errors.movingFrom && (
               <p className="text-error text-sm mt-2" data-testid="error-moving-from">
@@ -248,34 +297,57 @@ export default function Assessment() {
                 name="movingTo"
                 control={form.control}
                 render={({ field }) => (
-                  <Select onValueChange={(value) => {
-                    if (value === "Other") {
-                      field.onChange("");
-                    } else {
-                      field.onChange(value);
-                    }
-                  }} value={field.value}>
-                    <SelectTrigger className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100">
-                      <SelectValue placeholder="Italy (Rome)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {POPULAR_COUNTRIES.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={movingToOpen} onOpenChange={setMovingToOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={movingToOpen}
+                        className="w-full justify-between text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 h-auto"
+                        data-testid="select-moving-to"
+                      >
+                        {field.value || "Italy"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search countries..." />
+                        <CommandList>
+                          <CommandEmpty>No country found.</CommandEmpty>
+                          <CommandGroup>
+                            {COUNTRIES.map((country) => (
+                              <CommandItem
+                                key={country}
+                                value={country}
+                                onSelect={() => {
+                                  field.onChange(country);
+                                  setMovingToOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === country ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {country}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 )}
               />
-              {(form.watch("movingTo") === "Other" || !POPULAR_COUNTRIES.includes(form.watch("movingTo"))) && (
-                <Input
-                  placeholder="Enter your destination country and optional city/region"
-                  value={form.watch("movingTo")}
-                  onChange={(e) => form.setValue("movingTo", e.target.value)}
-                  className="text-lg py-4 px-4 border-2 focus:border-primary placeholder:italic placeholder:text-muted-foreground/70"
-                />
-              )}
+              <Input
+                placeholder="City or region (optional)"
+                value={movingToCity}
+                onChange={(e) => setMovingToCity(e.target.value)}
+                className="text-lg py-3 px-4 border-2 focus:border-primary placeholder:italic placeholder:text-muted-foreground/70"
+                data-testid="input-moving-to-city"
+              />
             </div>
             {form.formState.errors.movingTo && (
               <p className="text-error text-sm mt-2" data-testid="error-moving-to">
@@ -300,8 +372,12 @@ export default function Assessment() {
             />
             <div className="text-sm text-neutral mt-2">
               <p className="font-medium mb-1">Mention timing, who's moving, work setup, visas, constraints.</p>
-              <div className="flex items-center gap-2 transition-all duration-500">
-                <span className="opacity-70">{CONTEXT_EXAMPLES[currentExample]}</span>
+              <div className="space-y-1">
+                {CONTEXT_EXAMPLES.map((example, index) => (
+                  <div key={index} className="opacity-70">
+                    {example}
+                  </div>
+                ))}
               </div>
             </div>
             {form.formState.errors.context && (
