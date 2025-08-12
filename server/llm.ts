@@ -53,6 +53,7 @@ function renderPrompt(template: string, variables: Record<string, any>): string 
 
 export async function categorizeAssessment(
   destination: string,
+  movingFrom: string,
   companions: string,
   income: string,
   housing: string,
@@ -72,7 +73,7 @@ export async function categorizeAssessment(
     throw new Error('System prompt not found');
   }
 
-  const inputData = { destination, companions, income, housing, timing, priority };
+  const inputData = { destination, movingFrom, companions, income, housing, timing, priority };
   const userPrompt = renderPrompt(promptConfig.userPrompt, inputData);
   const startTime = Date.now();
 
