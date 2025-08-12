@@ -158,7 +158,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         followUpResult.reasoning = "Assessment complete - no additional questions needed.";
       }
 
-      // Step 5: Update assessment with categorized data
+      // Step 5: Create case state for tracking
+      console.log("Creating case state for assessment:", assessment.id);
+      const caseState = CaseState.createNewCaseState(assessment.id, 3);
+      
+      // Update snapshot with initial categorized data
+      const updatedCaseState = CaseState.mergeSnapshot(caseState, {
+        goal: categorizedData.goal,
+        finance: categorizedData.finance,
+        family: categorizedData.family,
+        housing: categorizedData.housing,
+        work: categorizedData.work,
+        immigration: categorizedData.immigration,
+        education: categorizedData.education,
+        tax: categorizedData.tax,
+        healthcare: categorizedData.healthcare,
+        other: categorizedData.other,
+        outstanding_clarifications: categorizedData.outstanding_clarifications
+      });
+      
+      // Add initial questions to Q&A log
+      const questionsWithIds = followUpResult.questions.map((q: any, index: number) => ({
+        id: `q1_${index + 1}`,
+        question: q.question,
+        answer: "",
+        category: q.category || "general",
+        round: 1,
+        timestamp: new Date().toISOString(),
+        reason: q.reason
+      }));
+      
+      const finalCaseState = CaseState.appendQuestions(updatedCaseState, questionsWithIds);
+      await CaseState.saveCaseState(finalCaseState);
+      console.log("Case state created and saved successfully");
+
+      // Step 6: Update assessment with categorized data
       const updatedAssessment = await storage.updateAssessment(assessment.id, {
         goal: categorizedData.goal,
         finance: categorizedData.finance,
@@ -428,6 +462,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers, assessmentId, currentRound);
       console.log(`Categories updated successfully for round ${currentRound}`);
       
+      // Update case state with answers and new snapshot
+      const existingCaseState = await CaseState.loadCaseState(assessmentId);
+      if (existingCaseState) {
+        console.log("Updating case state with follow-up answers");
+        
+        // Record answers (map from question index to question ID)
+        const answerMap: Record<string, string> = {};
+        Object.entries(answers).forEach(([index, answer]) => {
+          const questionId = `q${currentRound}_${parseInt(index) + 1}`;
+          answerMap[questionId] = answer as string;
+        });
+        
+        const stateWithAnswers = CaseState.recordAnswers(existingCaseState, answerMap);
+        const stateWithNewSnapshot = CaseState.mergeSnapshot(stateWithAnswers, {
+          goal: updatedCategories.goal,
+          finance: updatedCategories.finance,
+          family: updatedCategories.family,
+          housing: updatedCategories.housing,
+          work: updatedCategories.work,
+          immigration: updatedCategories.immigration,
+          education: updatedCategories.education,
+          tax: updatedCategories.tax,
+          healthcare: updatedCategories.healthcare,
+          other: updatedCategories.other,
+          outstanding_clarifications: updatedCategories.outstanding_clarifications
+        });
+        
+        await CaseState.saveCaseState(stateWithNewSnapshot);
+        console.log("Case state updated with answers and new snapshot");
+      } else {
+        console.log("Case state not found for assessment:", assessmentId);
+      }
+      
       const maxRounds = parseInt(existingAssessment.max_rounds || "3");
       const nextRound = currentRound + 1;
       console.log(`Current: ${currentRound}, Next: ${nextRound}, Max: ${maxRounds}`);
@@ -442,6 +509,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Generating follow-up questions for round ${nextRound}`);
         followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
         console.log(`Generated ${followUpResult.questions.length} questions for round ${nextRound}`);
+        
+        // Add new questions to case state
+        const updatedCaseState = await CaseState.loadCaseState(assessmentId);
+        if (updatedCaseState && followUpResult.questions.length > 0) {
+          const newQuestionsWithIds = followUpResult.questions.map((q: any, index: number) => ({
+            id: `q${nextRound}_${index + 1}`,
+            question: q.question,
+            answer: "",
+            category: q.category || "general",
+            round: nextRound,
+            timestamp: new Date().toISOString(),
+            reason: q.reason
+          }));
+          
+          const stateWithNewQuestions = CaseState.appendQuestions(updatedCaseState, newQuestionsWithIds);
+          const advancedState = CaseState.advanceRound(stateWithNewQuestions);
+          await CaseState.saveCaseState(advancedState);
+          console.log(`Added ${newQuestionsWithIds.length} questions to case state for round ${nextRound}`);
+        }
         
         followUpResult.isComplete = false;
         followUpResult.reasoning = `Round ${currentRound} complete. Continuing to round ${nextRound} of ${maxRounds}.`;
@@ -583,6 +669,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Assessment completed! Just finished round ${currentRound} which was the final round (max: ${maxRounds})`);
         followUpResult.isComplete = true;
         followUpResult.reasoning = `Assessment completed after ${currentRound} rounds of follow-up questions.`;
+        
+        // Mark case state as complete
+        const finalCaseState = await CaseState.loadCaseState(assessmentId);
+        if (finalCaseState) {
+          const completedState = CaseState.markComplete(finalCaseState);
+          await CaseState.saveCaseState(completedState);
+          console.log("Case state marked as complete");
+        }
       }
 
       // Update assessment in storage
