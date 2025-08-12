@@ -151,54 +151,78 @@ export default function FollowUpPage() {
     const lowerQuestion = question.toLowerCase();
     
     if (lowerQuestion.includes('citizenship') || lowerQuestion.includes('nationality')) {
-      return "e.g., Belgian, German, or dual citizenship";
+      return "e.g., 'Dutch citizen', 'German passport holder', 'Albanian citizen needing visa'";
+    }
+    
+    if (lowerQuestion.includes('status') && lowerQuestion.includes('immigration')) {
+      return "e.g., 'Tourist currently', 'Permanent resident', 'Student visa holder'";
     }
     
     if (lowerQuestion.includes('timeline') || lowerQuestion.includes('when') || lowerQuestion.includes('move')) {
-      return "e.g., Within 6 months, or by end of 2025";
+      return "e.g., 'Within 6 months', 'By summer 2025', 'As soon as possible'";
     }
     
-    if (lowerQuestion.includes('finance') || lowerQuestion.includes('budget') || lowerQuestion.includes('cost')) {
-      return "e.g., €50,000 budget, or need financing options";
+    if (lowerQuestion.includes('income') || lowerQuestion.includes('source')) {
+      return "e.g., 'Software engineer salary €80k', 'Investment income', 'Remote consulting work'";
     }
     
-    if (lowerQuestion.includes('work') || lowerQuestion.includes('job') || lowerQuestion.includes('employment')) {
-      return "e.g., Remote work, job search, or starting a business";
+    if (lowerQuestion.includes('finance') || lowerQuestion.includes('budget') || lowerQuestion.includes('afford')) {
+      return "e.g., '€200k available', 'Need financing help', 'Budget is tight'";
+    }
+    
+    if (lowerQuestion.includes('employment') || lowerQuestion.includes('job') && !lowerQuestion.includes('offer')) {
+      return "e.g., 'Currently employed remotely', 'Unemployed, actively searching', 'Self-employed'";
+    }
+    
+    if (lowerQuestion.includes('job offer') || lowerQuestion.includes('offer')) {
+      return "e.g., 'Yes, starting in March', 'Not yet, but interviewing', 'No, will search locally'";
     }
     
     if (lowerQuestion.includes('visa') || lowerQuestion.includes('permit') || lowerQuestion.includes('legal')) {
-      return "e.g., EU passport, work visa needed, or legal requirements unclear";
+      return "e.g., 'EU passport holder', 'Need work visa', 'Family reunification visa'";
     }
     
-    if (lowerQuestion.includes('housing') || lowerQuestion.includes('rent') || lowerQuestion.includes('property')) {
-      return "e.g., Rent 3-bedroom house, or buy property near city center";
+    if (lowerQuestion.includes('housing') || lowerQuestion.includes('home') || lowerQuestion.includes('property')) {
+      return "e.g., 'Buy 3-bed house €400k', 'Rent apartment first 2 years', 'Looking near schools'";
     }
     
-    if (lowerQuestion.includes('family') || lowerQuestion.includes('spouse') || lowerQuestion.includes('children')) {
-      return "e.g., Moving with 2 kids, or spouse will join later";
+    if (lowerQuestion.includes('city') || lowerQuestion.includes('location') || lowerQuestion.includes('area')) {
+      return "e.g., 'Milan for work', 'Rome for lifestyle', 'Smaller city for family'";
     }
     
-    if (lowerQuestion.includes('school') || lowerQuestion.includes('education') || lowerQuestion.includes('university')) {
-      return "e.g., Need English-speaking school, or looking at universities";
+    if (lowerQuestion.includes('children') || lowerQuestion.includes('kids') || lowerQuestion.includes('ages')) {
+      return "e.g., 'Ages 8 and 12', '5-year-old starting school', 'Teenagers, 14 and 16'";
+    }
+    
+    if (lowerQuestion.includes('school') || lowerQuestion.includes('education')) {
+      return "e.g., 'International school required', 'Public school okay', 'Need English curriculum'";
     }
     
     if (lowerQuestion.includes('health') || lowerQuestion.includes('medical') || lowerQuestion.includes('insurance')) {
-      return "e.g., No ongoing needs, or require diabetes medication";
+      return "e.g., 'No special needs', 'Diabetes requires medication', 'Prefer private insurance'";
     }
     
-    if (lowerQuestion.includes('language') || lowerQuestion.includes('speak') || lowerQuestion.includes('fluent')) {
-      return "e.g., Fluent English, basic Italian, or willing to learn";
+    if (lowerQuestion.includes('language') || lowerQuestion.includes('speak') || lowerQuestion.includes('italian')) {
+      return "e.g., 'Basic Italian, learning more', 'Fluent English only', 'Willing to take classes'";
     }
     
-    if (lowerQuestion.includes('why') || lowerQuestion.includes('goal') || lowerQuestion.includes('reason')) {
-      return "e.g., Better opportunities, lifestyle change, or family reasons";
+    if (lowerQuestion.includes('why') || lowerQuestion.includes('motivat') || lowerQuestion.includes('reason')) {
+      return "e.g., 'Better work opportunities', 'Quality of life', 'Family connections'";
     }
     
-    if (lowerQuestion.includes('tax')) {
-      return "e.g., No research done yet, or understand basics";
+    if (lowerQuestion.includes('tax') || lowerQuestion.includes('obligation')) {
+      return "e.g., 'Need professional help', 'Basic understanding', 'No knowledge yet'";
     }
     
-    return "Please provide specific details...";
+    if (lowerQuestion.includes('transport') || lowerQuestion.includes('commute')) {
+      return "e.g., 'Car essential', 'Public transport preferred', 'Bike-friendly area wanted'";
+    }
+    
+    if (lowerQuestion.includes('startup') || lowerQuestion.includes('business')) {
+      return "e.g., 'Tech startup', 'Consulting business', 'Online services company'";
+    }
+    
+    return "Be specific with details that help us understand your situation...";
   };
 
   // Show error details if there's an error
