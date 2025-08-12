@@ -77,15 +77,15 @@ export default function Assessment() {
   const [formProgress, setFormProgress] = useState(33);
   const [movingFromOpen, setMovingFromOpen] = useState(false);
   const [movingToOpen, setMovingToOpen] = useState(false);
-  const [movingFromCity, setMovingFromCity] = useState("");
-  const [movingToCity, setMovingToCity] = useState("");
+  const [movingFromCity, setMovingFromCity] = useState("Amsterdam");
+  const [movingToCity, setMovingToCity] = useState("Rome");
   
   const form = useForm<InsertAssessment>({
     resolver: zodResolver(insertAssessmentSchema),
     defaultValues: {
-      movingFrom: "",
-      movingTo: "",
-      context: "",
+      movingFrom: "Netherlands",
+      movingTo: "Italy",
+      context: "2 kids, $1M in wealth.",
     },
   });
 
@@ -236,7 +236,7 @@ export default function Assessment() {
                         className="w-full justify-between text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 h-auto"
                         data-testid="select-moving-from"
                       >
-                        {field.value || "Netherlands"}
+                        {field.value}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -306,7 +306,7 @@ export default function Assessment() {
                         className="w-full justify-between text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 h-auto"
                         data-testid="select-moving-to"
                       >
-                        {field.value || "Italy"}
+                        {field.value}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
