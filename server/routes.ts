@@ -7,6 +7,7 @@ import { PromptManager, type PromptConfig } from "./prompts";
 import { seedPricingPackages } from "./seed-packages";
 import { matchUserToPackage, getPackageMatchForAssessment } from "./package-matching";
 import { z } from "zod";
+import * as CaseState from "./case-state";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -938,6 +939,236 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false, 
         error: error instanceof Error ? error.message : "Failed to match package" 
+      });
+    }
+  });
+
+  // Case State Management API routes
+  app.get("/api/case-states", async (req, res) => {
+    try {
+      const caseIds = await CaseState.listCaseStates();
+      res.json({ success: true, caseIds });
+    } catch (error) {
+      console.error("Error listing case states:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to list case states" 
+      });
+    }
+  });
+
+  app.get("/api/case-states/:assessmentId", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      const caseState = await CaseState.loadCaseState(assessmentId);
+      
+      if (!caseState) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Case state not found" 
+        });
+      }
+      
+      res.json({ success: true, caseState });
+    } catch (error) {
+      console.error("Error loading case state:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to load case state" 
+      });
+    }
+  });
+
+  app.post("/api/case-states/:assessmentId", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      const { maxRounds = 3 } = req.body;
+      
+      // Create new case state
+      const caseState = CaseState.createNewCaseState(assessmentId, maxRounds);
+      await CaseState.saveCaseState(caseState);
+      
+      res.json({ 
+        success: true, 
+        caseState, 
+        message: "Case state created successfully" 
+      });
+    } catch (error) {
+      console.error("Error creating case state:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to create case state" 
+      });
+    }
+  });
+
+  app.put("/api/case-states/:assessmentId/snapshot", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      const { snapshot } = req.body;
+      
+      const existingState = await CaseState.loadCaseState(assessmentId);
+      if (!existingState) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Case state not found" 
+        });
+      }
+      
+      const updatedState = CaseState.mergeSnapshot(existingState, snapshot);
+      await CaseState.saveCaseState(updatedState);
+      
+      res.json({ 
+        success: true, 
+        caseState: updatedState, 
+        message: "Snapshot updated successfully" 
+      });
+    } catch (error) {
+      console.error("Error updating snapshot:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to update snapshot" 
+      });
+    }
+  });
+
+  app.post("/api/case-states/:assessmentId/questions", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      const { questions } = req.body;
+      
+      const existingState = await CaseState.loadCaseState(assessmentId);
+      if (!existingState) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Case state not found" 
+        });
+      }
+      
+      const updatedState = CaseState.appendQuestions(existingState, questions);
+      await CaseState.saveCaseState(updatedState);
+      
+      res.json({ 
+        success: true, 
+        caseState: updatedState, 
+        message: "Questions added successfully" 
+      });
+    } catch (error) {
+      console.error("Error adding questions:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to add questions" 
+      });
+    }
+  });
+
+  app.put("/api/case-states/:assessmentId/answers", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      const { answers } = req.body;
+      
+      const existingState = await CaseState.loadCaseState(assessmentId);
+      if (!existingState) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Case state not found" 
+        });
+      }
+      
+      const updatedState = CaseState.recordAnswers(existingState, answers);
+      await CaseState.saveCaseState(updatedState);
+      
+      res.json({ 
+        success: true, 
+        caseState: updatedState, 
+        message: "Answers recorded successfully" 
+      });
+    } catch (error) {
+      console.error("Error recording answers:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to record answers" 
+      });
+    }
+  });
+
+  app.post("/api/case-states/:assessmentId/advance", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      
+      const existingState = await CaseState.loadCaseState(assessmentId);
+      if (!existingState) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Case state not found" 
+        });
+      }
+      
+      const updatedState = CaseState.advanceRound(existingState);
+      await CaseState.saveCaseState(updatedState);
+      
+      res.json({ 
+        success: true, 
+        caseState: updatedState, 
+        message: "Advanced to next round successfully" 
+      });
+    } catch (error) {
+      console.error("Error advancing round:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to advance round" 
+      });
+    }
+  });
+
+  app.post("/api/case-states/:assessmentId/complete", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      
+      const existingState = await CaseState.loadCaseState(assessmentId);
+      if (!existingState) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Case state not found" 
+        });
+      }
+      
+      const updatedState = CaseState.markComplete(existingState);
+      await CaseState.saveCaseState(updatedState);
+      
+      res.json({ 
+        success: true, 
+        caseState: updatedState, 
+        message: "Case marked as complete successfully" 
+      });
+    } catch (error) {
+      console.error("Error marking case complete:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to mark case complete" 
+      });
+    }
+  });
+
+  app.get("/api/case-states/:assessmentId/for-llm", async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      
+      const caseState = await CaseState.loadCaseState(assessmentId);
+      if (!caseState) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Case state not found" 
+        });
+      }
+      
+      const llmFormat = CaseState.formatForLLM(caseState);
+      res.json({ success: true, data: llmFormat });
+    } catch (error) {
+      console.error("Error formatting for LLM:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : "Failed to format for LLM" 
       });
     }
   });
