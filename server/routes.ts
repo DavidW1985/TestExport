@@ -44,18 +44,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priority = validatedData.priority || "";
       }
       
-      // Step 1: Categorize the assessment data using LLM
-      console.log("Categorizing assessment with LLM...");
-
-      const categorizedData = await categorizeAssessment(
-        destination,
-        companions,
-        income,
-        housing,
-        timing,
-        priority
-      );
-
       // Helper functions for context extraction
       function extractCompanionsFromContext(context: string): string {
         const companionKeywords = ['family', 'spouse', 'wife', 'husband', 'kids', 'children', 'child', 'partner', 'alone', 'myself', 'solo'];
@@ -121,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       
       // Step 2: Create initial assessment to get ID for logging
-      const initialAssessment = await storage.createAssessment({
+      const assessment = await storage.createAssessment({
         ...validatedData,
         // Always populate legacy fields for compatibility
         destination,
@@ -135,9 +123,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         is_complete: "false"
       });
 
-      // Step 3: Generate follow-up questions (with logging)
+      // Step 3: Categorize the assessment data using LLM (with logging)
+      console.log("Categorizing assessment with LLM...");
+      const categorizedData = await categorizeAssessment(
+        destination,
+        companions,
+        income,
+        housing,
+        timing,
+        priority,
+        assessment.id
+      );
+
+      // Step 4: Generate follow-up questions (with logging)
       console.log("Generating follow-up questions...");
-      const followUpResult = await generateFollowUpQuestions(categorizedData, 1, 3, [], initialAssessment.id);
+      const followUpResult = await generateFollowUpQuestions(categorizedData, 1, 3, [], assessment.id);
       
       // Debug logging for followUpResult
       console.log("Follow-up result structure:", {
@@ -155,8 +155,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         followUpResult.reasoning = "Assessment complete - no additional questions needed.";
       }
 
-      // Step 4: Update assessment with categorized data
-      const assessment = await storage.updateAssessment(initialAssessment.id, {
+      // Step 5: Update assessment with categorized data
+      const updatedAssessment = await storage.updateAssessment(assessment.id, {
         goal: categorizedData.goal,
         finance: categorizedData.finance,
         family: categorizedData.family,
@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({
         success: true,
         message: "Assessment processed successfully!",
-        assessmentId: assessment.id,
+        assessmentId: updatedAssessment.id,
         categorizedData,
         followUpQuestions: followUpResult.questions,
         isComplete: followUpResult.isComplete,
