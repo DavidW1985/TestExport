@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Save, RotateCcw, FileText, Cpu, MessageSquare, Activity, Package, ExternalLink } from 'lucide-react';
+import { Settings, Save, RotateCcw, FileText, Cpu, MessageSquare, Activity, Package, ExternalLink, Database } from 'lucide-react';
 import { Link } from 'wouter';
 
 interface PromptConfig {
@@ -162,6 +162,12 @@ export default function AdminPage() {
               <Button variant="outline" className="gap-2" data-testid="button-pricing-packages">
                 <Package className="w-4 h-4" />
                 Manage Pricing Packages
+              </Button>
+            </Link>
+            <Link href="/case-states">
+              <Button variant="outline" className="gap-2" data-testid="button-case-states">
+                <Database className="w-4 h-4" />
+                Case State Management
               </Button>
             </Link>
           </div>
