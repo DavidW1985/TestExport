@@ -68,7 +68,32 @@ export default function AdminPage() {
     }
   });
 
-  const prompts = promptsData?.prompts || [];
+  // Sort prompts to ensure God Prompt (systemPrompt) is first and Global Prompt (globalPrompt) is second
+  const prompts = (promptsData?.prompts || []).sort((a: PromptConfig, b: PromptConfig) => {
+    // Define priority order
+    const priorityOrder = ['systemPrompt', 'globalPrompt'];
+    
+    const aIndex = priorityOrder.indexOf(a.id);
+    const bIndex = priorityOrder.indexOf(b.id);
+    
+    // If both are in priority list, sort by their position
+    if (aIndex !== -1 && bIndex !== -1) {
+      return aIndex - bIndex;
+    }
+    
+    // If only a is in priority list, it comes first
+    if (aIndex !== -1) {
+      return -1;
+    }
+    
+    // If only b is in priority list, it comes first
+    if (bIndex !== -1) {
+      return 1;
+    }
+    
+    // If neither is in priority list, sort alphabetically by name
+    return a.name.localeCompare(b.name);
+  });
 
   useEffect(() => {
     if (prompts.length > 0 && !selectedPrompt) {
