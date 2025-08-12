@@ -19,11 +19,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Raw data:", validatedData);
       
       // For new 3-question format, map to legacy format for LLM processing
-      let destination, companions, income, housing, timing, priority;
+      let destination, movingFrom, companions, income, housing, timing, priority;
       
       if (validatedData.movingTo && validatedData.movingFrom && validatedData.context) {
         // New format - extract from simplified questions
         destination = validatedData.movingTo;
+        movingFrom = validatedData.movingFrom;
         const context = validatedData.context;
         
         // Extract information from context
@@ -33,10 +34,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timing = extractTimingFromContext(context);
         priority = context; // Full context becomes priority
         
-        console.log("Mapped from new format:", { destination, companions, income, housing, timing, priority });
+        console.log("Mapped from new format:", { destination, movingFrom, companions, income, housing, timing, priority });
       } else {
         // Legacy format - use existing fields
         destination = validatedData.destination || "";
+        movingFrom = validatedData.movingFrom || "";
         companions = validatedData.companions || "";
         income = validatedData.income || "";
         housing = validatedData.housing || "";
@@ -127,6 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Categorizing assessment with LLM...");
       const categorizedData = await categorizeAssessment(
         destination,
+        movingFrom,
         companions,
         income,
         housing,
