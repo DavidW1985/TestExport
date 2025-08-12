@@ -14,23 +14,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/assessments", async (req, res) => {
     try {
       const validatedData = insertAssessmentSchema.parse(req.body);
+      console.log("=== NEW ASSESSMENT SUBMISSION ===");
+      console.log("Raw data:", validatedData);
+      
+      // For new 3-question format, map to legacy format for LLM processing
+      let destination, companions, income, housing, timing, priority;
+      
+      if (validatedData.movingTo && validatedData.movingFrom && validatedData.context) {
+        // New format - extract from simplified questions
+        destination = validatedData.movingTo;
+        const context = validatedData.context;
+        
+        // Extract information from context
+        companions = extractCompanionsFromContext(context);
+        income = extractIncomeFromContext(context);
+        housing = extractHousingFromContext(context);
+        timing = extractTimingFromContext(context);
+        priority = context; // Full context becomes priority
+        
+        console.log("Mapped from new format:", { destination, companions, income, housing, timing, priority });
+      } else {
+        // Legacy format - use existing fields
+        destination = validatedData.destination || "";
+        companions = validatedData.companions || "";
+        income = validatedData.income || "";
+        housing = validatedData.housing || "";
+        timing = validatedData.timing || "";
+        priority = validatedData.priority || "";
+      }
       
       // Step 1: Categorize the assessment data using LLM
       console.log("Categorizing assessment with LLM...");
 
       const categorizedData = await categorizeAssessment(
-        validatedData.destination,
-        validatedData.companions,
-        validatedData.income,
-        validatedData.housing,
-        validatedData.timing,
-        validatedData.priority
+        destination,
+        companions,
+        income,
+        housing,
+        timing,
+        priority
       );
+
+      // Helper functions for context extraction
+      function extractCompanionsFromContext(context: string): string {
+        const companionKeywords = ['family', 'spouse', 'wife', 'husband', 'kids', 'children', 'child', 'partner', 'alone', 'myself', 'solo'];
+        const matches = companionKeywords.filter(keyword => context.toLowerCase().includes(keyword));
+        if (matches.length > 0) {
+          const familyMatch = context.match(/family\s+of\s+(\d+)/i);
+          if (familyMatch) return `Family of ${familyMatch[1]}`;
+          
+          const kidsMatch = context.match(/(\d+)\s+(?:kids|children)/i);
+          if (kidsMatch) return `${kidsMatch[1]} children`;
+          
+          if (context.toLowerCase().includes('alone') || context.toLowerCase().includes('myself') || context.toLowerCase().includes('solo')) {
+            return "Moving alone";
+          }
+          
+          if (context.toLowerCase().includes('spouse') || context.toLowerCase().includes('wife') || context.toLowerCase().includes('husband')) {
+            return "Spouse/partner";
+          }
+          
+          return "Family members mentioned";
+        }
+        return "Not specified";
+      }
+
+      function extractIncomeFromContext(context: string): string {
+        const workKeywords = ['remote', 'job', 'work', 'business', 'startup', 'freelance', 'consultant', 'engineer', 'developer', 'salary'];
+        const matches = workKeywords.filter(keyword => context.toLowerCase().includes(keyword));
+        if (matches.length > 0) {
+          if (context.toLowerCase().includes('remote')) return "Remote work";
+          if (context.toLowerCase().includes('startup')) return "Startup/business";
+          if (context.toLowerCase().includes('engineer') || context.toLowerCase().includes('developer')) return "Tech/engineering";
+          return "Work mentioned in context";
+        }
+        return "Not specified";
+      }
+
+      function extractHousingFromContext(context: string): string {
+        const housingKeywords = ['rent', 'buy', 'house', 'apartment', 'lease', 'property', 'accommodation'];
+        const matches = housingKeywords.filter(keyword => context.toLowerCase().includes(keyword));
+        if (matches.length > 0) {
+          if (context.toLowerCase().includes('rent')) return "Planning to rent";
+          if (context.toLowerCase().includes('buy')) return "Planning to buy";
+          return "Housing mentioned in context";
+        }
+        return "Not specified";
+      }
+
+      function extractTimingFromContext(context: string): string {
+        const timingKeywords = ['asap', 'soon', 'urgent', 'months', 'years', 'target', 'deadline', 'by'];
+        const matches = timingKeywords.filter(keyword => context.toLowerCase().includes(keyword));
+        if (matches.length > 0) {
+          const monthMatch = context.match(/(\w+)\s+(\d{4})/i);
+          if (monthMatch) return `Target: ${monthMatch[1]} ${monthMatch[2]}`;
+          
+          if (context.toLowerCase().includes('asap') || context.toLowerCase().includes('soon') || context.toLowerCase().includes('urgent')) {
+            return "As soon as possible";
+          }
+          
+          return "Timing mentioned in context";
+        }
+        return "Flexible";
+      }
 
       
       // Step 2: Create initial assessment to get ID for logging
       const initialAssessment = await storage.createAssessment({
         ...validatedData,
+        // Always populate legacy fields for compatibility
+        destination,
+        companions,
+        income,
+        housing,
+        timing,
+        priority,
         current_round: "1",
         max_rounds: "3",
         is_complete: "false"

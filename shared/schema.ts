@@ -11,13 +11,18 @@ export const users = pgTable("users", {
 
 export const assessments = pgTable("assessments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  // Original form responses
-  destination: text("destination").notNull(),
-  companions: text("companions").notNull(),
-  income: text("income").notNull(),
-  housing: text("housing").notNull(),
-  timing: text("timing").notNull(),
-  priority: text("priority").notNull(),
+  // Original form responses - simplified 3-question structure (nullable during transition)
+  movingFrom: text("moving_from"), // Country + optional city
+  movingTo: text("moving_to"), // Country + optional city/region  
+  context: text("context"), // Open text for timing, who's moving, work setup, visas, constraints
+  
+  // Legacy fields (kept for backwards compatibility during transition)
+  destination: text("destination"),
+  companions: text("companions"),
+  income: text("income"),
+  housing: text("housing"),
+  timing: text("timing"),
+  priority: text("priority"),
   
   // LLM categorized data
   goal: text("goal"),
@@ -153,13 +158,21 @@ export const insertAssessmentSchema = createInsertSchema(assessments).omit({
   current_round: true,
   max_rounds: true,
   is_complete: true,
+  processing_status: true,
+  processing_result: true,
+  processing_error: true,
+  // Legacy fields - make optional during transition
+  destination: true,
+  companions: true,
+  income: true,
+  housing: true,
+  timing: true,
+  priority: true,
 }).extend({
-  destination: z.string().min(1, "Please specify your destination"),
-  companions: z.string().min(1, "Please tell us who's moving with you"),
-  income: z.string().min(1, "Please describe your income source"),
-  housing: z.string().min(1, "Please describe your housing plan"),
-  timing: z.string().min(1, "Please specify your timing"),
-  priority: z.string().min(1, "Please share what's most important"),
+  // New required fields for simplified 3-question structure
+  movingFrom: z.string().min(1, "Please tell us where you're moving from"),
+  movingTo: z.string().min(1, "Please tell us where you're moving to"),
+  context: z.string().min(10, "Please provide some context to help us help you"),
 });
 
 export const insertPromptSchema = createInsertSchema(prompts).omit({
