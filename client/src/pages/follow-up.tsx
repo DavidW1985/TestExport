@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -183,30 +183,20 @@ export default function FollowUpPage() {
     }
   };
 
-  // Component to handle async placeholder loading
-  const PlaceholderTextarea = ({ question, index, value, onChange }: {
-    question: string;
-    index: number;
-    value: string;
-    onChange: (index: number, value: string) => void;
-  }) => {
-    const [placeholder, setPlaceholder] = useState("Loading suggestion...");
+  // Load all placeholders at once to prevent re-render issues
+  useEffect(() => {
+    if (followUpQuestions) {
+      followUpQuestions.forEach(question => {
+        if (!placeholderCache[question.question]) {
+          getPlaceholderForQuestion(question.question);
+        }
+      });
+    }
+  }, [followUpQuestions]);
 
-    useEffect(() => {
-      getPlaceholderForQuestion(question).then(setPlaceholder);
-    }, [question]);
-
-    return (
-      <Textarea
-        id={`question-${index}`}
-        placeholder={placeholder}
-        value={value || ''}
-        onChange={(e) => onChange(index, e.target.value)}
-        rows={4}
-        className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 resize-none placeholder:italic placeholder:text-muted-foreground/70"
-        data-testid={`textarea-answer-${index}`}
-      />
-    );
+  // Get placeholder text synchronously from cache
+  const getPlaceholder = (question: string): string => {
+    return placeholderCache[question] || "Provide specific details about your situation...";
   };
 
   // Show error details if there's an error
@@ -271,11 +261,14 @@ export default function FollowUpPage() {
                   <MessageSquare className="h-5 w-5 text-primary mr-2" />
                   {question.question}
                 </Label>
-                <PlaceholderTextarea
-                  question={question.question}
-                  index={index}
+                <Textarea
+                  id={`question-${index}`}
+                  placeholder={getPlaceholder(question.question)}
                   value={answers[index] || ''}
-                  onChange={handleAnswerChange}
+                  onChange={(e) => handleAnswerChange(index, e.target.value)}
+                  rows={4}
+                  className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 resize-none placeholder:italic placeholder:text-muted-foreground/70"
+                  data-testid={`textarea-answer-${index}`}
                 />
                 {!answers[index]?.trim() && (
                   <p className="text-error text-sm mt-2" data-testid={`error-question-${index}`}>
