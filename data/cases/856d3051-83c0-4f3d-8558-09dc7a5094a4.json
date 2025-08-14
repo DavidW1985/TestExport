@@ -1,0 +1,72 @@
+{
+  "snapshot": {
+    "goal": "Move from Netherlands to Italy with family",
+    "finance": "$1M in wealth",
+    "family": "2 children",
+    "housing": "",
+    "work": "",
+    "immigration": "",
+    "education": "",
+    "tax": "",
+    "healthcare": "",
+    "other": "Flexible timing",
+    "outstanding_clarifications": "Income source, housing plan, employment status, education needs for children, current citizenship/residence status"
+  },
+  "qa_log": [
+    {
+      "id": "856d3051-83c0-4f3d-8558-09dc7a5094a4-r1-q1",
+      "question": "What is your current employment status?",
+      "answer": "",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-14T09:25:11.894Z",
+      "reason": "Understanding employment status helps determine visa and financial planning needs."
+    },
+    {
+      "id": "856d3051-83c0-4f3d-8558-09dc7a5094a4-r1-q2",
+      "question": "Do you plan to buy or rent a home in Italy?",
+      "answer": "",
+      "category": "housing",
+      "round": 1,
+      "timestamp": "2025-08-14T09:25:11.894Z",
+      "reason": "Knowing housing plans aids in financial and logistical planning."
+    },
+    {
+      "id": "856d3051-83c0-4f3d-8558-09dc7a5094a4-r1-q3",
+      "question": "What is your current citizenship?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-14T09:25:11.894Z",
+      "reason": "Citizenship affects visa requirements and residency planning."
+    },
+    {
+      "id": "856d3051-83c0-4f3d-8558-09dc7a5094a4-r1-q4",
+      "question": "What education level are your children in?",
+      "answer": "",
+      "category": "education",
+      "round": 1,
+      "timestamp": "2025-08-14T09:25:11.894Z",
+      "reason": "Determining education needs is crucial for planning school enrollments."
+    },
+    {
+      "id": "856d3051-83c0-4f3d-8558-09dc7a5094a4-r1-q5",
+      "question": "What is your primary source of income?",
+      "answer": "",
+      "category": "finance",
+      "round": 1,
+      "timestamp": "2025-08-14T09:25:11.894Z",
+      "reason": "Income source impacts financial planning and tax implications."
+    }
+  ],
+  "meta": {
+    "assessmentId": "856d3051-83c0-4f3d-8558-09dc7a5094a4",
+    "currentRound": 1,
+    "maxRounds": 3,
+    "isComplete": false,
+    "createdAt": "2025-08-14T09:25:11.893Z",
+    "updatedAt": "2025-08-14T09:25:11.894Z",
+    "totalQuestions": 5,
+    "totalAnswers": 0
+  }
+}
