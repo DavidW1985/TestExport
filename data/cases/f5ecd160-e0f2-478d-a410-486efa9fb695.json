@@ -1,0 +1,135 @@
+{
+  "snapshot": {
+    "goal": "Move from Netherlands to Italy with family",
+    "finance": "$1M in wealth",
+    "family": "2 children, ages 8 and 10",
+    "housing": "Own current home, plan to sell",
+    "work": "Software engineer, earn $100K, continue job remotely from Italy",
+    "immigration": "Current citizenship: Turkish",
+    "education": "Prefer normal school for children in Italy",
+    "tax": "",
+    "healthcare": "Diabetes",
+    "other": "Flexible timing",
+    "outstanding_clarifications": "Income source, employment status, current citizenship/residence status, tax considerations, healthcare requirements, conflict in residence status: 'unknown' vs 'I don't know what this means'. Clarification needed on healthcare preference in Italy: private or public. Consult a tax advisor about moving to Italy."
+  },
+  "qa_log": [
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r1-q1",
+      "question": "What is your current citizenship?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-12T17:03:09.316Z",
+      "reason": "Determines visa and residency requirements for Italy."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r1-q2",
+      "question": "Do you plan to work in Italy?",
+      "answer": "",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-12T17:03:09.316Z",
+      "reason": "Affects visa type and financial planning."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r1-q3",
+      "question": "What are your children's ages?",
+      "answer": "",
+      "category": "education",
+      "round": 1,
+      "timestamp": "2025-08-12T17:03:09.316Z",
+      "reason": "Helps assess education needs and school options."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r1-q4",
+      "question": "Do you own or rent your current home?",
+      "answer": "",
+      "category": "housing",
+      "round": 1,
+      "timestamp": "2025-08-12T17:03:09.316Z",
+      "reason": "Impacts housing transition planning and financial considerations."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r1-q5",
+      "question": "Do you have any specific healthcare needs?",
+      "answer": "",
+      "category": "healthcare",
+      "round": 1,
+      "timestamp": "2025-08-12T17:03:09.316Z",
+      "reason": "Ensures adequate healthcare planning in Italy."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r1-q1",
+      "question": "What is your current residence status in the Netherlands?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-12T17:04:27.654Z",
+      "reason": "Understanding residence status is crucial for planning the move and visa requirements."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r1-q2",
+      "question": "Do you plan to sell or rent your current home?",
+      "answer": "",
+      "category": "housing",
+      "round": 1,
+      "timestamp": "2025-08-12T17:04:27.654Z",
+      "reason": "Knowing your housing plan impacts financial and logistical planning."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r1-q3",
+      "question": "Will you continue your current job remotely from Italy?",
+      "answer": "",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-12T17:04:27.654Z",
+      "reason": "Determining employment status affects visa and tax considerations."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r1-q4",
+      "question": "What type of school do you prefer for your children in Italy?",
+      "answer": "",
+      "category": "education",
+      "round": 1,
+      "timestamp": "2025-08-12T17:04:27.654Z",
+      "reason": "Understanding education needs helps in planning for school enrollment and location."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r2-q1",
+      "question": "What is your current residence status in the Netherlands?",
+      "answer": "",
+      "category": "immigration",
+      "round": 2,
+      "timestamp": "2025-08-12T17:06:17.861Z",
+      "reason": "Clarify current legal status to assess visa needs for Italy."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r2-q2",
+      "question": "Do you plan to use private or public healthcare in Italy?",
+      "answer": "",
+      "category": "healthcare",
+      "round": 2,
+      "timestamp": "2025-08-12T17:06:17.861Z",
+      "reason": "Determine healthcare needs due to diabetes for planning."
+    },
+    {
+      "id": "f5ecd160-e0f2-478d-a410-486efa9fb695-r2-q3",
+      "question": "Have you consulted a tax advisor about moving to Italy?",
+      "answer": "",
+      "category": "tax",
+      "round": 2,
+      "timestamp": "2025-08-12T17:06:17.861Z",
+      "reason": "Assess tax implications of moving to Italy with remote work."
+    }
+  ],
+  "meta": {
+    "assessmentId": "f5ecd160-e0f2-478d-a410-486efa9fb695",
+    "currentRound": 3,
+    "maxRounds": 3,
+    "isComplete": false,
+    "createdAt": "2025-08-12T17:03:09.314Z",
+    "updatedAt": "2025-08-12T17:07:48.825Z",
+    "totalQuestions": 12,
+    "totalAnswers": 0
+  }
+}

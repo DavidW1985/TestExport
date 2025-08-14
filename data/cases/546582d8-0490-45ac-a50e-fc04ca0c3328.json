@@ -1,0 +1,99 @@
+{
+  "snapshot": {
+    "goal": "Move from Netherlands to Italy with family",
+    "finance": "$1M in wealth",
+    "family": "2 children",
+    "housing": "Buy a house $400k budget.",
+    "work": "Currently unemployed",
+    "immigration": "",
+    "education": "Children are homeschooled.",
+    "tax": "Needs tax help.",
+    "healthcare": "",
+    "other": "Timing is flexible",
+    "outstanding_clarifications": "Income source, employment status, tax considerations, healthcare requirements. Do you require private healthcare in Italy? Conflict: Do you require private healthcare in Italy? I don't know if I do?"
+  },
+  "qa_log": [
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r1-q1",
+      "question": "What is your current employment status?",
+      "answer": "",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-14T06:45:43.372Z",
+      "reason": "Understanding employment status helps assess visa and income needs."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r1-q2",
+      "question": "Do you plan to rent or buy a home in Italy?",
+      "answer": "",
+      "category": "housing",
+      "round": 1,
+      "timestamp": "2025-08-14T06:45:43.372Z",
+      "reason": "Housing plans impact financial and logistical arrangements."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r1-q3",
+      "question": "What type of school do your children attend?",
+      "answer": "",
+      "category": "education",
+      "round": 1,
+      "timestamp": "2025-08-14T06:45:43.372Z",
+      "reason": "Education needs determine school options and locations in Italy."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r1-q4",
+      "question": "Do you require private healthcare in Italy?",
+      "answer": "",
+      "category": "healthcare",
+      "round": 1,
+      "timestamp": "2025-08-14T06:45:43.372Z",
+      "reason": "Healthcare needs affect insurance and residency planning."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r1-q5",
+      "question": "Do you have any specific tax concerns?",
+      "answer": "",
+      "category": "tax",
+      "round": 1,
+      "timestamp": "2025-08-14T06:45:43.372Z",
+      "reason": "Understanding tax concerns can guide financial planning and residency decisions."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r1-q1",
+      "question": "What is your current citizenship?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-14T06:47:00.319Z",
+      "reason": "Citizenship affects visa and residency requirements."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r1-q2",
+      "question": "Do you plan to work in Italy?",
+      "answer": "",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-14T06:47:00.319Z",
+      "reason": "Employment status impacts visa type and financial planning."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r1-q3",
+      "question": "Do you need private healthcare in Italy?",
+      "answer": "",
+      "category": "healthcare",
+      "round": 1,
+      "timestamp": "2025-08-14T06:47:00.319Z",
+      "reason": "Clarifying healthcare needs affects insurance and residency planning."
+    }
+  ],
+  "meta": {
+    "assessmentId": "546582d8-0490-45ac-a50e-fc04ca0c3328",
+    "currentRound": 2,
+    "maxRounds": 3,
+    "isComplete": false,
+    "createdAt": "2025-08-14T06:45:43.372Z",
+    "updatedAt": "2025-08-14T06:47:00.319Z",
+    "totalQuestions": 8,
+    "totalAnswers": 0
+  }
+}
