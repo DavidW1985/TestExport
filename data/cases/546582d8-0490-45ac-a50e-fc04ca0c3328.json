@@ -4,13 +4,13 @@
     "finance": "$1M in wealth",
     "family": "2 children",
     "housing": "Buy a house $400k budget.",
-    "work": "Currently unemployed",
-    "immigration": "",
+    "work": "Currently unemployed. Plans to work as a software engineer and start own store in Italy.",
+    "immigration": "Dutch citizen",
     "education": "Children are homeschooled.",
     "tax": "Needs tax help.",
-    "healthcare": "",
+    "healthcare": "Needs private healthcare for diabetes medication.",
     "other": "Timing is flexible",
-    "outstanding_clarifications": "Income source, employment status, tax considerations, healthcare requirements. Do you require private healthcare in Italy? Conflict: Do you require private healthcare in Italy? I don't know if I do?"
+    "outstanding_clarifications": "Income source, employment status, tax considerations, healthcare requirements. Conflict: Do you require private healthcare in Italy? I don't know if I do? Yes diabetes medication. Conflict: Income source: Yes vs. unknown."
   },
   "qa_log": [
     {
@@ -84,16 +84,43 @@
       "round": 1,
       "timestamp": "2025-08-14T06:47:00.319Z",
       "reason": "Clarifying healthcare needs affects insurance and residency planning."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r2-q1",
+      "question": "Do you have a source of income currently?",
+      "answer": "",
+      "category": "Income source",
+      "round": 2,
+      "timestamp": "2025-08-14T06:54:10.268Z",
+      "reason": "Clarifies financial stability and potential tax implications."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r2-q2",
+      "question": "Do you need assistance with finding a job in Italy?",
+      "answer": "",
+      "category": "Employment",
+      "round": 2,
+      "timestamp": "2025-08-14T06:54:10.268Z",
+      "reason": "Determines need for employment support services."
+    },
+    {
+      "id": "546582d8-0490-45ac-a50e-fc04ca0c3328-r2-q3",
+      "question": "Do you need help with Italian tax registration?",
+      "answer": "",
+      "category": "Tax considerations",
+      "round": 2,
+      "timestamp": "2025-08-14T06:54:10.268Z",
+      "reason": "Ensures compliance with Italian tax laws."
     }
   ],
   "meta": {
     "assessmentId": "546582d8-0490-45ac-a50e-fc04ca0c3328",
-    "currentRound": 2,
+    "currentRound": 3,
     "maxRounds": 3,
     "isComplete": false,
     "createdAt": "2025-08-14T06:45:43.372Z",
-    "updatedAt": "2025-08-14T06:47:00.319Z",
-    "totalQuestions": 8,
+    "updatedAt": "2025-08-14T06:56:12.135Z",
+    "totalQuestions": 11,
     "totalAnswers": 0
   }
 }
