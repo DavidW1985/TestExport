@@ -382,24 +382,11 @@ export async function generatePlaceholder(question: string): Promise<string> {
   const startTime = Date.now();
   
   try {
-    const prompt = `You are helping create a contextual placeholder example for an emigration assessment question.
-
-QUESTION: "${question}"
-
-Generate a realistic, specific placeholder example that shows the user exactly what kind of answer would be helpful. Follow these rules:
-
-1. Make it specific and actionable (not vague)
-2. Use realistic details (proper amounts, timeframes, locations)
-3. Keep it concise (under 100 characters)
-4. Start with "e.g., " 
-5. Show 1-2 realistic examples separated by "or"
-
-Examples of good placeholders:
-- For "What is your current citizenship?": "e.g., 'German citizen' or 'US passport holder'"
-- For "What is your monthly housing budget?": "e.g., '€1,500/month' or 'Up to $2,000'"
-- For "Do you have children moving with you?": "e.g., 'Yes, ages 8 and 12' or 'No children'"
-
-Return ONLY the placeholder text, nothing else.`;
+    // Get the placeholder prompt from the prompts system
+    const { getPrompt } = await import("./init-prompts");
+    const placeholderPromptTemplate = await getPrompt("placeholder_generation");
+    
+    const prompt = placeholderPromptTemplate.replace("{{question}}", question);
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",

@@ -1,0 +1,72 @@
+{
+  "snapshot": {
+    "goal": "Move from Netherlands to Italy with family",
+    "finance": "Wealth of $1M",
+    "family": "2 children",
+    "housing": "",
+    "work": "",
+    "immigration": "",
+    "education": "Schooling requirements for 2 children",
+    "tax": "",
+    "healthcare": "",
+    "other": "Flexible timing",
+    "outstanding_clarifications": "Income source, housing plan, employment status, current citizenship/residence status, tax residency"
+  },
+  "qa_log": [
+    {
+      "id": "6ffef967-5512-45fd-8b50-066980cbd2b2-r1-q1",
+      "question": "What is your current citizenship?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-14T19:52:24.183Z",
+      "reason": "Determines visa requirements and residency options."
+    },
+    {
+      "id": "6ffef967-5512-45fd-8b50-066980cbd2b2-r1-q2",
+      "question": "Do you have a housing plan in Italy?",
+      "answer": "",
+      "category": "housing",
+      "round": 1,
+      "timestamp": "2025-08-14T19:52:24.183Z",
+      "reason": "Essential for settling and cost estimation."
+    },
+    {
+      "id": "6ffef967-5512-45fd-8b50-066980cbd2b2-r1-q3",
+      "question": "What is your employment status?",
+      "answer": "",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-14T19:52:24.183Z",
+      "reason": "Affects visa type and tax obligations."
+    },
+    {
+      "id": "6ffef967-5512-45fd-8b50-066980cbd2b2-r1-q4",
+      "question": "What is your current tax residency?",
+      "answer": "",
+      "category": "tax",
+      "round": 1,
+      "timestamp": "2025-08-14T19:52:24.183Z",
+      "reason": "Impacts tax planning and obligations."
+    },
+    {
+      "id": "6ffef967-5512-45fd-8b50-066980cbd2b2-r1-q5",
+      "question": "What is your income source?",
+      "answer": "",
+      "category": "finance",
+      "round": 1,
+      "timestamp": "2025-08-14T19:52:24.183Z",
+      "reason": "Important for financial planning and visa requirements."
+    }
+  ],
+  "meta": {
+    "assessmentId": "6ffef967-5512-45fd-8b50-066980cbd2b2",
+    "currentRound": 1,
+    "maxRounds": 3,
+    "isComplete": false,
+    "createdAt": "2025-08-14T19:52:24.182Z",
+    "updatedAt": "2025-08-14T19:52:24.183Z",
+    "totalQuestions": 5,
+    "totalAnswers": 0
+  }
+}
