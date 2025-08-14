@@ -237,6 +237,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint to generate LLM-powered placeholder text
+  app.post("/api/placeholders", async (req, res) => {
+    try {
+      const { question } = req.body;
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Question is required" 
+        });
+      }
+
+      const { generatePlaceholder } = await import("./llm");
+      const placeholder = await generatePlaceholder(question);
+      
+      res.json({
+        success: true,
+        placeholder
+      });
+    } catch (error) {
+      console.error("Placeholder generation error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to generate placeholder",
+        placeholder: "Provide specific details about your situation..."
+      });
+    }
+  });
+
   // Debug endpoint to get list of assessments for selection
   app.get("/api/debug/assessments", async (req, res) => {
     try {
