@@ -57,7 +57,6 @@ export const DEFAULT_PROMPTS: Record<string, PromptConfig> = {
     name: "Global Prompt Template",
     description: "Base template and rules that can be referenced by all mode-specific prompts",
     systemPrompt: "", // Not used for this meta-prompt
-    model: "gpt-4o",
     userPrompt: `Global Template Variables and Rules:
 
 Template Variables Available:
@@ -96,6 +95,37 @@ Priority Order for Information Gathering:
     createdAt: new Date(),
     updatedAt: new Date(),
   },
+
+  placeholder_generation: {
+    id: "placeholder_generation",
+    name: "Placeholder Text Generation",
+    description: "Generates contextual placeholder text for emigration assessment questions",
+    systemPrompt: "",
+    userPrompt: `You are helping create a contextual placeholder example for an emigration assessment question.
+
+QUESTION: "{{question}}"
+
+Generate a realistic, specific placeholder example that shows the user exactly what kind of answer would be helpful. Follow these rules:
+
+1. Make it specific and actionable (not vague)
+2. Use realistic details (proper amounts, timeframes, locations)
+3. Keep it concise (under 100 characters)
+4. Start with "e.g., " 
+5. Show 1-2 realistic examples separated by "or"
+
+Examples of good placeholders:
+- For "What is your current citizenship?": "e.g., 'German citizen' or 'US passport holder'"
+- For "What is your monthly housing budget?": "e.g., '€1,500/month' or 'Up to $2,000'"
+- For "Do you have children moving with you?": "e.g., 'Yes, ages 8 and 12' or 'No children'"
+
+Return ONLY the placeholder text, nothing else.`,
+    temperature: 0.3,
+    maxTokens: 100,
+    model: "gpt-4o",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+
   categorization: {
     id: "categorization",
     name: "Assessment Categorization (MODE=categorize)",

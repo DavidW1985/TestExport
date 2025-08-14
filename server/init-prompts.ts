@@ -48,4 +48,21 @@ initializePrompts().then(() => {
   process.exit(1);
 });
 
+// Function to get a prompt from the database
+export async function getPrompt(promptId: string): Promise<string> {
+  try {
+    const [prompt] = await db.select().from(prompts).where(eq(prompts.id, promptId));
+    
+    if (!prompt) {
+      console.error(`Prompt not found: ${promptId}`);
+      throw new Error(`Prompt not found: ${promptId}`);
+    }
+    
+    return prompt.userPrompt;
+  } catch (error) {
+    console.error(`Error getting prompt ${promptId}:`, error);
+    throw error;
+  }
+}
+
 export { initializePrompts };
