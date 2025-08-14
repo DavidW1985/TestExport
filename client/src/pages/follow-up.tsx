@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ export default function FollowUpPage() {
   );
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [placeholderCache, setPlaceholderCache] = useState<Record<string, string>>({});
 
   if (!assessmentState) {
     setLocation('/');
@@ -148,91 +149,64 @@ export default function FollowUpPage() {
     submitFollowUpMutation.mutate(submissionData);
   };
 
-  const getPlaceholderForQuestion = (question: string): string => {
-    const lowerQuestion = question.toLowerCase();
-    
-    // Citizenship & Legal Status
-    if (lowerQuestion.includes('citizenship') || lowerQuestion.includes('nationality') || lowerQuestion.includes('passport')) {
-      return "e.g., 'Dutch citizen', 'German passport holder', 'Albanian citizen needing visa'";
+  // Generate LLM-powered placeholder text
+  const getPlaceholderForQuestion = async (question: string): Promise<string> => {
+    // Check cache first
+    if (placeholderCache[question]) {
+      return placeholderCache[question];
     }
-    
-    // Employment & Work
-    if (lowerQuestion.includes('work') || lowerQuestion.includes('employ') || lowerQuestion.includes('job') || lowerQuestion.includes('career')) {
-      return "e.g., 'Software engineer, remote work', 'Unemployed, actively searching', 'Starting own business'";
+
+    try {
+      const response = await fetch('/api/placeholders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate placeholder');
+      }
+
+      const data = await response.json();
+      const placeholder = data.placeholder || "Provide specific details about your situation...";
+      
+      // Cache the result
+      setPlaceholderCache(prev => ({
+        ...prev,
+        [question]: placeholder
+      }));
+
+      return placeholder;
+    } catch (error) {
+      console.error('Error generating placeholder:', error);
+      return "Provide specific details about your situation...";
     }
-    
-    // Healthcare & Medical
-    if (lowerQuestion.includes('health') || lowerQuestion.includes('medical') || lowerQuestion.includes('insurance') || lowerQuestion.includes('private')) {
-      return "e.g., 'No special needs', 'Diabetes requires medication', 'Prefer private insurance'";
-    }
-    
-    // Income & Finance
-    if (lowerQuestion.includes('income') || lowerQuestion.includes('source') || lowerQuestion.includes('finance') || lowerQuestion.includes('budget') || lowerQuestion.includes('afford') || lowerQuestion.includes('money')) {
-      return "e.g., 'Software engineer salary €80k', 'Investment income', 'Need financing help'";
-    }
-    
-    // Immigration Status & Visa
-    if (lowerQuestion.includes('status') || lowerQuestion.includes('visa') || lowerQuestion.includes('permit') || lowerQuestion.includes('legal') || lowerQuestion.includes('resident')) {
-      return "e.g., 'EU passport holder', 'Need work visa', 'Tourist currently'";
-    }
-    
-    // Housing & Property
-    if (lowerQuestion.includes('housing') || lowerQuestion.includes('home') || lowerQuestion.includes('property') || lowerQuestion.includes('rent') || lowerQuestion.includes('buy')) {
-      return "e.g., 'Buy 3-bed house €400k', 'Rent apartment first 2 years', 'Looking near schools'";
-    }
-    
-    // Location & Geography
-    if (lowerQuestion.includes('city') || lowerQuestion.includes('location') || lowerQuestion.includes('area') || lowerQuestion.includes('region') || lowerQuestion.includes('where')) {
-      return "e.g., 'Milan for work', 'Rome for lifestyle', 'Smaller city for family'";
-    }
-    
-    // Timeline & Timing
-    if (lowerQuestion.includes('timeline') || lowerQuestion.includes('when') || lowerQuestion.includes('time') || lowerQuestion.includes('plan') || lowerQuestion.includes('soon')) {
-      return "e.g., 'Within 6 months', 'By summer 2025', 'As soon as possible'";
-    }
-    
-    // Family & Children
-    if (lowerQuestion.includes('children') || lowerQuestion.includes('kids') || lowerQuestion.includes('family') || lowerQuestion.includes('spouse') || lowerQuestion.includes('ages')) {
-      return "e.g., 'Ages 8 and 12', '5-year-old starting school', 'Spouse will join later'";
-    }
-    
-    // Education & School
-    if (lowerQuestion.includes('school') || lowerQuestion.includes('education') || lowerQuestion.includes('university') || lowerQuestion.includes('study')) {
-      return "e.g., 'International school required', 'Public school okay', 'Need English curriculum'";
-    }
-    
-    // Language
-    if (lowerQuestion.includes('language') || lowerQuestion.includes('speak') || lowerQuestion.includes('italian') || lowerQuestion.includes('english')) {
-      return "e.g., 'Basic Italian, learning more', 'Fluent English only', 'Willing to take classes'";
-    }
-    
-    // Tax & Legal Obligations
-    if (lowerQuestion.includes('tax') || lowerQuestion.includes('obligation') || lowerQuestion.includes('legal') || lowerQuestion.includes('requirement')) {
-      return "e.g., 'Need professional help', 'Basic understanding', 'No knowledge yet'";
-    }
-    
-    // Motivation & Reasons
-    if (lowerQuestion.includes('why') || lowerQuestion.includes('motivat') || lowerQuestion.includes('reason') || lowerQuestion.includes('goal')) {
-      return "e.g., 'Better work opportunities', 'Quality of life', 'Family connections'";
-    }
-    
-    // Business & Entrepreneurship
-    if (lowerQuestion.includes('business') || lowerQuestion.includes('startup') || lowerQuestion.includes('company') || lowerQuestion.includes('entrepreneur')) {
-      return "e.g., 'Tech startup', 'Consulting business', 'Online services company'";
-    }
-    
-    // Transportation
-    if (lowerQuestion.includes('transport') || lowerQuestion.includes('commute') || lowerQuestion.includes('travel')) {
-      return "e.g., 'Car essential', 'Public transport preferred', 'Bike-friendly area wanted'";
-    }
-    
-    // Specific questions that might not match keywords
-    if (lowerQuestion.includes('offer') && lowerQuestion.includes('job')) {
-      return "e.g., 'Yes, starting in March', 'Not yet, but interviewing', 'No, will search locally'";
-    }
-    
-    // Generic catch-all that's more helpful
-    return "Provide specific details about your situation, preferences, or requirements...";
+  };
+
+  // Component to handle async placeholder loading
+  const PlaceholderTextarea = ({ question, index, value, onChange }: {
+    question: string;
+    index: number;
+    value: string;
+    onChange: (index: number, value: string) => void;
+  }) => {
+    const [placeholder, setPlaceholder] = useState("Loading suggestion...");
+
+    useEffect(() => {
+      getPlaceholderForQuestion(question).then(setPlaceholder);
+    }, [question]);
+
+    return (
+      <Textarea
+        id={`question-${index}`}
+        placeholder={placeholder}
+        value={value || ''}
+        onChange={(e) => onChange(index, e.target.value)}
+        rows={4}
+        className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 resize-none placeholder:italic placeholder:text-muted-foreground/70"
+        data-testid={`textarea-answer-${index}`}
+      />
+    );
   };
 
   // Show error details if there's an error
@@ -297,14 +271,11 @@ export default function FollowUpPage() {
                   <MessageSquare className="h-5 w-5 text-primary mr-2" />
                   {question.question}
                 </Label>
-                <Textarea
-                  id={`question-${index}`}
-                  placeholder={getPlaceholderForQuestion(question.question)}
+                <PlaceholderTextarea
+                  question={question.question}
+                  index={index}
                   value={answers[index] || ''}
-                  onChange={(e) => handleAnswerChange(index, e.target.value)}
-                  rows={4}
-                  className="text-lg py-4 px-4 border-2 focus:border-primary focus:ring-4 focus:ring-blue-100 resize-none placeholder:italic placeholder:text-muted-foreground/70"
-                  data-testid={`textarea-answer-${index}`}
+                  onChange={handleAnswerChange}
                 />
                 {!answers[index]?.trim() && (
                   <p className="text-error text-sm mt-2" data-testid={`error-question-${index}`}>
