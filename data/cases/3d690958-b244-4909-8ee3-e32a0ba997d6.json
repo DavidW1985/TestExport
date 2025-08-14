@@ -1,0 +1,72 @@
+{
+  "snapshot": {
+    "goal": "Move from Germany to Spain as a tech professional with a small budget",
+    "finance": "Remote work income, small budget",
+    "family": "",
+    "housing": "",
+    "work": "Tech professional, remote work",
+    "immigration": "",
+    "education": "",
+    "tax": "",
+    "healthcare": "",
+    "other": "Flexible timing",
+    "outstanding_clarifications": "Household composition, housing plan, current citizenship/residence status, tax residency, healthcare needs"
+  },
+  "qa_log": [
+    {
+      "id": "3d690958-b244-4909-8ee3-e32a0ba997d6-r1-q1",
+      "question": "What is your current citizenship?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-14T06:57:09.591Z",
+      "reason": "This determines visa requirements and residency options in Spain."
+    },
+    {
+      "id": "3d690958-b244-4909-8ee3-e32a0ba997d6-r1-q2",
+      "question": "Do you have any dependents moving with you?",
+      "answer": "",
+      "category": "family",
+      "round": 1,
+      "timestamp": "2025-08-14T06:57:09.591Z",
+      "reason": "Understanding household composition impacts housing and financial planning."
+    },
+    {
+      "id": "3d690958-b244-4909-8ee3-e32a0ba997d6-r1-q3",
+      "question": "What is your planned monthly budget for housing in Spain?",
+      "answer": "",
+      "category": "housing",
+      "round": 1,
+      "timestamp": "2025-08-14T06:57:09.591Z",
+      "reason": "This helps in assessing suitable housing options within your budget."
+    },
+    {
+      "id": "3d690958-b244-4909-8ee3-e32a0ba997d6-r1-q4",
+      "question": "Are you planning to change your tax residency to Spain?",
+      "answer": "",
+      "category": "tax",
+      "round": 1,
+      "timestamp": "2025-08-14T06:57:09.591Z",
+      "reason": "Tax residency affects financial planning and legal obligations."
+    },
+    {
+      "id": "3d690958-b244-4909-8ee3-e32a0ba997d6-r1-q5",
+      "question": "Do you have specific healthcare needs or preferences?",
+      "answer": "",
+      "category": "healthcare",
+      "round": 1,
+      "timestamp": "2025-08-14T06:57:09.591Z",
+      "reason": "Healthcare needs influence insurance and residency planning."
+    }
+  ],
+  "meta": {
+    "assessmentId": "3d690958-b244-4909-8ee3-e32a0ba997d6",
+    "currentRound": 1,
+    "maxRounds": 3,
+    "isComplete": false,
+    "createdAt": "2025-08-14T06:57:09.591Z",
+    "updatedAt": "2025-08-14T06:57:09.591Z",
+    "totalQuestions": 5,
+    "totalAnswers": 0
+  }
+}

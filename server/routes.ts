@@ -36,14 +36,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log("Mapped from new format:", { destination, movingFrom, companions, income, housing, timing, priority });
       } else {
-        // Legacy format - use existing fields
-        destination = validatedData.destination || "";
+        // Legacy format - use existing fields (but these properties don't exist in new schema)
+        destination = validatedData.movingTo || "";
         movingFrom = validatedData.movingFrom || "";
-        companions = validatedData.companions || "";
-        income = validatedData.income || "";
-        housing = validatedData.housing || "";
-        timing = validatedData.timing || "";
-        priority = validatedData.priority || "";
+        companions = "Not specified";
+        income = "Not specified";
+        housing = "Not specified";
+        timing = "Flexible";
+        priority = validatedData.context || "";
       }
       
       // Helper functions for context extraction
@@ -469,17 +469,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Record answers (map from question index to actual question ID in case state)
         const answerMap: Record<string, string> = {};
+        const questionsForCurrentRound = existingCaseState.qa_log.filter(q => q.round === currentRound);
+        console.log(`Found ${questionsForCurrentRound.length} questions for round ${currentRound}`);
+        
         Object.entries(answers).forEach(([index, answer]) => {
-          // Find the matching question in the current round's Q&A log
           const questionIndex = parseInt(index);
-          const questionsForCurrentRound = existingCaseState.qa_log.filter(q => q.round === currentRound);
+          console.log(`Processing answer ${questionIndex}: "${answer}"`);
           
           if (questionsForCurrentRound[questionIndex]) {
             const questionId = questionsForCurrentRound[questionIndex].id;
             answerMap[questionId] = answer as string;
-            console.log(`Mapping answer ${questionIndex} to question ID: ${questionId} = "${(answer as string).substring(0, 50)}..."`);
+            console.log(`✓ Mapped answer ${questionIndex} to question ID: ${questionId} = "${(answer as string).substring(0, 50)}..."`);
+          } else {
+            console.log(`✗ No question found at index ${questionIndex} for round ${currentRound}`);
           }
         });
+        
+        console.log(`Total answers mapped: ${Object.keys(answerMap).length}`);
         
         const stateWithAnswers = CaseState.recordAnswers(existingCaseState, answerMap);
         const stateWithNewSnapshot = CaseState.mergeSnapshot(stateWithAnswers, {
