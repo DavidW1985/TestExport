@@ -177,9 +177,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         outstanding_clarifications: categorizedData.outstanding_clarifications
       });
       
-      // Add initial questions to Q&A log
+      // Add initial questions to Q&A log with proper IDs
       const questionsWithIds = followUpResult.questions.map((q: any, index: number) => ({
-        id: `q1_${index + 1}`,
+        id: `${assessment.id}-r1-q${index + 1}`,
         question: q.question,
         answer: "",
         category: q.category || "general",
@@ -467,11 +467,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingCaseState) {
         console.log("Updating case state with follow-up answers");
         
-        // Record answers (map from question index to question ID)
+        // Record answers (map from question index to actual question ID in case state)
         const answerMap: Record<string, string> = {};
         Object.entries(answers).forEach(([index, answer]) => {
-          const questionId = `q${currentRound}_${parseInt(index) + 1}`;
-          answerMap[questionId] = answer as string;
+          // Find the matching question in the current round's Q&A log
+          const questionIndex = parseInt(index);
+          const questionsForCurrentRound = existingCaseState.qa_log.filter(q => q.round === currentRound);
+          
+          if (questionsForCurrentRound[questionIndex]) {
+            const questionId = questionsForCurrentRound[questionIndex].id;
+            answerMap[questionId] = answer as string;
+            console.log(`Mapping answer ${questionIndex} to question ID: ${questionId} = "${(answer as string).substring(0, 50)}..."`);
+          }
         });
         
         const stateWithAnswers = CaseState.recordAnswers(existingCaseState, answerMap);
@@ -514,7 +521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const updatedCaseState = await CaseState.loadCaseState(assessmentId);
         if (updatedCaseState && followUpResult.questions.length > 0) {
           const newQuestionsWithIds = followUpResult.questions.map((q: any, index: number) => ({
-            id: `q${nextRound}_${index + 1}`,
+            id: `${assessmentId}-r${nextRound}-q${index + 1}`,
             question: q.question,
             answer: "",
             category: q.category || "general",

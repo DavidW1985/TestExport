@@ -1,0 +1,99 @@
+{
+  "snapshot": {
+    "goal": "Move from Netherlands to Italy with family",
+    "finance": "$1M in wealth",
+    "family": "2 children",
+    "housing": "Buy a $500K house",
+    "work": "Plan to start own store",
+    "immigration": "Dutch citizen",
+    "education": "Children aged 8 and 12 in public school",
+    "tax": "",
+    "healthcare": "",
+    "other": "Flexible timing",
+    "outstanding_clarifications": "Income source, employment status, education needs for children, current residence status"
+  },
+  "qa_log": [
+    {
+      "id": "6c980183-e60a-4a76-87be-21f19b96b97e-r1-q1",
+      "question": "What is your current citizenship?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-14T06:42:08.425Z",
+      "reason": "To understand visa and residency requirements."
+    },
+    {
+      "id": "6c980183-e60a-4a76-87be-21f19b96b97e-r1-q2",
+      "question": "Do you plan to work in Italy?",
+      "answer": "",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-14T06:42:08.425Z",
+      "reason": "To determine work visa needs and employment status."
+    },
+    {
+      "id": "6c980183-e60a-4a76-87be-21f19b96b97e-r1-q3",
+      "question": "What type of housing do you prefer in Italy?",
+      "answer": "",
+      "category": "housing",
+      "round": 1,
+      "timestamp": "2025-08-14T06:42:08.425Z",
+      "reason": "To assess housing needs and budget."
+    },
+    {
+      "id": "6c980183-e60a-4a76-87be-21f19b96b97e-r1-q4",
+      "question": "What education level are your children currently in?",
+      "answer": "",
+      "category": "education",
+      "round": 1,
+      "timestamp": "2025-08-14T06:42:08.425Z",
+      "reason": "To plan for children's education in Italy."
+    },
+    {
+      "id": "6c980183-e60a-4a76-87be-21f19b96b97e-r1-q1",
+      "question": "What is your current employment status?",
+      "answer": "",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-14T06:43:08.729Z",
+      "reason": "Understanding employment status helps assess income stability and visa needs."
+    },
+    {
+      "id": "6c980183-e60a-4a76-87be-21f19b96b97e-r1-q2",
+      "question": "What is your primary source of income?",
+      "answer": "",
+      "category": "finance",
+      "round": 1,
+      "timestamp": "2025-08-14T06:43:08.729Z",
+      "reason": "Income source is crucial for financial planning and visa requirements."
+    },
+    {
+      "id": "6c980183-e60a-4a76-87be-21f19b96b97e-r1-q3",
+      "question": "Do your children have any specific educational needs?",
+      "answer": "",
+      "category": "education",
+      "round": 1,
+      "timestamp": "2025-08-14T06:43:08.729Z",
+      "reason": "Special educational needs may affect school selection in Italy."
+    },
+    {
+      "id": "6c980183-e60a-4a76-87be-21f19b96b97e-r1-q4",
+      "question": "What is your current residence status in the Netherlands?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-14T06:43:08.729Z",
+      "reason": "Current residence status affects the emigration process and legal requirements."
+    }
+  ],
+  "meta": {
+    "assessmentId": "6c980183-e60a-4a76-87be-21f19b96b97e",
+    "currentRound": 2,
+    "maxRounds": 3,
+    "isComplete": false,
+    "createdAt": "2025-08-14T06:42:08.424Z",
+    "updatedAt": "2025-08-14T06:43:08.729Z",
+    "totalQuestions": 8,
+    "totalAnswers": 0
+  }
+}
