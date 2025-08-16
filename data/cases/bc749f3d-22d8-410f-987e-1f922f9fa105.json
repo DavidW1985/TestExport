@@ -1,0 +1,72 @@
+{
+  "snapshot": {
+    "goal": "Move from Netherlands to Italy with family",
+    "finance": "$1M in wealth",
+    "family": "2 children",
+    "housing": "",
+    "work": "",
+    "immigration": "",
+    "education": "",
+    "tax": "",
+    "healthcare": "",
+    "other": "Timing is flexible",
+    "outstanding_clarifications": "Income source, housing plan, employment status, education needs for children, current citizenship/residence status"
+  },
+  "qa_log": [
+    {
+      "id": "bc749f3d-22d8-410f-987e-1f922f9fa105-r1-q1",
+      "question": "What is your current citizenship?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-16T07:51:41.405Z",
+      "reason": "To assess visa/permit requirements for Italy."
+    },
+    {
+      "id": "bc749f3d-22d8-410f-987e-1f922f9fa105-r1-q2",
+      "question": "Do you plan to work in Italy?",
+      "answer": "",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-16T07:51:41.405Z",
+      "reason": "To determine employment status and visa needs."
+    },
+    {
+      "id": "bc749f3d-22d8-410f-987e-1f922f9fa105-r1-q3",
+      "question": "What is your housing plan in Italy?",
+      "answer": "",
+      "category": "housing",
+      "round": 1,
+      "timestamp": "2025-08-16T07:51:41.405Z",
+      "reason": "To understand accommodation needs and budget."
+    },
+    {
+      "id": "bc749f3d-22d8-410f-987e-1f922f9fa105-r1-q4",
+      "question": "What education level are your children in?",
+      "answer": "",
+      "category": "education",
+      "round": 1,
+      "timestamp": "2025-08-16T07:51:41.405Z",
+      "reason": "To assess schooling needs in Italy."
+    },
+    {
+      "id": "bc749f3d-22d8-410f-987e-1f922f9fa105-r1-q5",
+      "question": "What is your source of income?",
+      "answer": "",
+      "category": "finance",
+      "round": 1,
+      "timestamp": "2025-08-16T07:51:41.405Z",
+      "reason": "To evaluate financial stability and tax implications."
+    }
+  ],
+  "meta": {
+    "assessmentId": "bc749f3d-22d8-410f-987e-1f922f9fa105",
+    "currentRound": 1,
+    "maxRounds": 3,
+    "isComplete": false,
+    "createdAt": "2025-08-16T07:51:41.404Z",
+    "updatedAt": "2025-08-16T07:51:41.405Z",
+    "totalQuestions": 5,
+    "totalAnswers": 0
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "snapshot": {
+    "goal": "Move from Netherlands to Italy with family",
+    "finance": "$1M in wealth",
+    "family": "2 children",
+    "housing": "Buy a house",
+    "work": "Unemployed, $100K software engineer.",
+    "immigration": "Citizen of Morocco",
+    "education": "Public school",
+    "tax": "",
+    "healthcare": "Diabetes, Medication.",
+    "other": "Flexible timing",
+    "outstanding_clarifications": "Income source, employment status, citizenship/residence status, schooling requirements, tax residency, healthcare needs, employment status conflict: Unemployed vs $100K software engineer, citizenship/residence status unknown, income source unknown"
+  },
+  "qa_log": [
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r1-q1",
+      "question": "What is your current employment status?",
+      "answer": "Unemployed.",
+      "category": "work",
+      "round": 1,
+      "timestamp": "2025-08-16T08:03:35.960Z",
+      "reason": "Determines work visa requirements and financial planning."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r1-q2",
+      "question": "Do you plan to buy or rent a house in Italy?",
+      "answer": "Buy a house.",
+      "category": "housing",
+      "round": 1,
+      "timestamp": "2025-08-16T08:03:35.960Z",
+      "reason": "Impacts financial and housing logistics planning."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r1-q3",
+      "question": "What is your citizenship or residence status in the Netherlands?",
+      "answer": "Citizen of Morocco",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-16T08:03:35.961Z",
+      "reason": "Affects visa and residency requirements in Italy."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r1-q4",
+      "question": "What schooling needs do your children have?",
+      "answer": "Public school.",
+      "category": "education",
+      "round": 1,
+      "timestamp": "2025-08-16T08:03:35.961Z",
+      "reason": "Ensures educational continuity for children."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r1-q5",
+      "question": "Do you have any specific healthcare needs?",
+      "answer": "Diabetes",
+      "category": "healthcare",
+      "round": 1,
+      "timestamp": "2025-08-16T08:03:35.961Z",
+      "reason": "Important for planning healthcare coverage in Italy."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r1-q1",
+      "question": "What is your current income source?",
+      "answer": "",
+      "category": "finance",
+      "round": 1,
+      "timestamp": "2025-08-16T08:04:04.950Z",
+      "reason": "Understanding income is crucial for financial planning and visa requirements."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r1-q2",
+      "question": "Do you have any other citizenships or residency permits?",
+      "answer": "",
+      "category": "immigration",
+      "round": 1,
+      "timestamp": "2025-08-16T08:04:04.950Z",
+      "reason": "Determining eligibility for residency or work permits in Italy."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r1-q3",
+      "question": "What are your tax residency plans after moving?",
+      "answer": "",
+      "category": "tax",
+      "round": 1,
+      "timestamp": "2025-08-16T08:04:04.950Z",
+      "reason": "Tax residency impacts financial and legal obligations in Italy."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r1-q4",
+      "question": "What are your healthcare needs related to diabetes?",
+      "answer": "",
+      "category": "healthcare",
+      "round": 1,
+      "timestamp": "2025-08-16T08:04:04.950Z",
+      "reason": "Ensuring adequate healthcare planning for diabetes management."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r2-q1",
+      "question": "Confirm employment status: Unemployed or earning $100K?",
+      "answer": "",
+      "category": "work",
+      "round": 2,
+      "timestamp": "2025-08-16T08:04:40.703Z",
+      "reason": "Clarify conflicting employment information."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r2-q2",
+      "question": "What is your current Moroccan citizenship status?",
+      "answer": "",
+      "category": "immigration",
+      "round": 2,
+      "timestamp": "2025-08-16T08:04:40.703Z",
+      "reason": "Determine citizenship for visa and residency planning."
+    },
+    {
+      "id": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba-r2-q3",
+      "question": "Do you plan to work in Italy?",
+      "answer": "",
+      "category": "work",
+      "round": 2,
+      "timestamp": "2025-08-16T08:04:40.703Z",
+      "reason": "Assess work visa requirements and income source."
+    }
+  ],
+  "meta": {
+    "assessmentId": "3dfb0dbd-75cb-4ec9-9fe6-74aadcda0cba",
+    "currentRound": 3,
+    "maxRounds": 3,
+    "isComplete": false,
+    "createdAt": "2025-08-16T08:03:35.960Z",
+    "updatedAt": "2025-08-16T08:05:07.511Z",
+    "totalQuestions": 12,
+    "totalAnswers": 5
+  }
+}
