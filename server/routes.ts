@@ -7,7 +7,8 @@ import { PromptManager, type PromptConfig } from "./prompts";
 import { seedPricingPackages } from "./seed-packages";
 import { matchUserToPackage, getPackageMatchForAssessment } from "./package-matching";
 import { z } from "zod";
-import * as CaseState from "./case-state";
+import { eventLog } from "./event-log";
+import { setupEventRoutes } from "./event-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -158,39 +159,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         followUpResult.reasoning = "Assessment complete - no additional questions needed.";
       }
 
-      // Step 5: Create case state for tracking
-      console.log("Creating case state for assessment:", assessment.id);
-      const caseState = CaseState.createNewCaseState(assessment.id, 3);
+      // Step 5: Log initial assessment in event system
+      console.log("Creating event log entry for assessment:", assessment.id);
       
-      // Update snapshot with initial categorized data
-      const updatedCaseState = CaseState.mergeSnapshot(caseState, {
-        goal: categorizedData.goal,
-        finance: categorizedData.finance,
-        family: categorizedData.family,
-        housing: categorizedData.housing,
-        work: categorizedData.work,
-        immigration: categorizedData.immigration,
-        education: categorizedData.education,
-        tax: categorizedData.tax,
-        healthcare: categorizedData.healthcare,
-        other: categorizedData.other,
-        outstanding_clarifications: categorizedData.outstanding_clarifications
+      // Log initial assessment event in append-only database
+      await eventLog.addEvent({
+        userId: assessment.id,
+        eventType: 'initial_assessment',
+        questionText: `Initial Assessment: Moving from ${movingFrom} to ${destination}`,
+        userAnswer: `Context: ${validatedData.context}`,
+        llmCategory: 'goal',
+        llmTreatment: 'fact',
+        llmConfidence: 1.0,
+        roundNumber: 1,
+        metadata: {
+          movingFrom,
+          movingTo: destination,
+          originalFormat: 'simplified_3_questions',
+          categorizedData,
+          followUpQuestions: followUpResult.questions
+        }
       });
       
-      // Add initial questions to Q&A log with proper IDs
-      const questionsWithIds = followUpResult.questions.map((q: any, index: number) => ({
-        id: `${assessment.id}-r1-q${index + 1}`,
-        question: q.question,
-        answer: "",
-        category: q.category || "general",
-        round: 1,
-        timestamp: new Date().toISOString(),
-        reason: q.reason
-      }));
+      // Log each follow-up question as individual events
+      for (let i = 0; i < followUpResult.questions.length; i++) {
+        const question = followUpResult.questions[i];
+        await eventLog.addEvent({
+          userId: assessment.id,
+          eventType: 'follow_up_question',
+          questionText: question.question,
+          llmCategory: question.category || 'general',
+          llmTreatment: 'clarification_needed',
+          llmConfidence: 0.8,
+          roundNumber: 1,
+          metadata: {
+            questionIndex: i,
+            reason: question.reason,
+            questionId: `${assessment.id}-r1-q${i + 1}`
+          }
+        });
+      }
       
-      const finalCaseState = CaseState.appendQuestions(updatedCaseState, questionsWithIds);
-      await CaseState.saveCaseState(finalCaseState);
-      console.log("Case state created and saved successfully");
+      console.log("Event log entries created successfully");
 
       // Step 6: Update assessment with categorized data
       const updatedAssessment = await storage.updateAssessment(assessment.id, {
@@ -237,24 +247,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint to generate LLM-powered placeholder text
+  app.post("/api/placeholders", async (req, res) => {
+    try {
+      const { question } = req.body;
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Question is required" 
+        });
+      }
 
+      const { generatePlaceholder } = await import("./llm");
+      const placeholder = await generatePlaceholder(question);
+      
+      res.json({
+        success: true,
+        placeholder
+      });
+    } catch (error) {
+      console.error("Placeholder generation error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to generate placeholder",
+        placeholder: "Provide specific details about your situation..."
+      });
+    }
+  });
 
-  // Debug endpoint to get list of assessments for selection
+  // Debug endpoint to get list of users with events  
   app.get("/api/debug/assessments", async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 50;
-      const assessments = await storage.getRecentAssessments(limit);
+      const userIds = await eventLog.getAllUserIds();
       
-      const assessmentList = assessments.map(assessment => ({
-        id: assessment.id,
-        displayName: `${assessment.destination || 'Unknown'} - ${new Date(assessment.submittedAt).toLocaleString()}`,
-        destination: assessment.destination,
-        companions: assessment.companions,
-        timing: assessment.timing,
-        currentRound: assessment.current_round,
-        isComplete: assessment.is_complete === "true",
-        submittedAt: assessment.submittedAt,
-        hasLlmLogs: true // We'll assume all assessments have logs for now
+      const assessmentList = await Promise.all(userIds.map(async (userId) => {
+        const stats = await eventLog.getUserStats(userId);
+        return {
+          id: userId,
+          displayName: `${userId.split('-')[0]} - ${stats.totalEvents} events`,
+          currentRound: stats.currentRound,
+          isComplete: stats.isComplete,
+          submittedAt: stats.firstEvent,
+          hasLlmLogs: true
+        };
       }));
       
       res.json({ success: true, assessments: assessmentList });
@@ -464,51 +499,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers, assessmentId, currentRound);
       console.log(`Categories updated successfully for round ${currentRound}`);
       
-      // Update case state with answers and new snapshot
-      const existingCaseState = await CaseState.loadCaseState(assessmentId);
-      if (existingCaseState) {
-        console.log("Updating case state with follow-up answers");
+      // Log follow-up answers in event system
+      console.log("Logging follow-up answers in event system");
+      
+      // Log each answer as a separate event
+      for (const [index, answer] of Object.entries(answers)) {
+        const questionIndex = parseInt(index);
+        console.log(`Logging answer ${questionIndex}: "${answer}"`);
         
-        // Record answers (map from question index to actual question ID in case state)
-        const answerMap: Record<string, string> = {};
-        const questionsForCurrentRound = existingCaseState.qa_log.filter(q => q.round === currentRound);
-        console.log(`Found ${questionsForCurrentRound.length} questions for round ${currentRound}`);
-        
-        Object.entries(answers).forEach(([index, answer]) => {
-          const questionIndex = parseInt(index);
-          console.log(`Processing answer ${questionIndex}: "${answer}"`);
-          
-          if (questionsForCurrentRound[questionIndex]) {
-            const questionId = questionsForCurrentRound[questionIndex].id;
-            answerMap[questionId] = answer as string;
-            console.log(`✓ Mapped answer ${questionIndex} to question ID: ${questionId} = "${(answer as string).substring(0, 50)}..."`);
-          } else {
-            console.log(`✗ No question found at index ${questionIndex} for round ${currentRound}`);
-          }
+        // Get the original question from the initial assessment events
+        const questionEvents = await eventLog.getEventsByType(assessmentId, 'follow_up_question');
+        const questionEvent = questionEvents.find(event => {
+          const metadata = event.metadata as any;
+          return metadata?.questionIndex === questionIndex && event.roundNumber === currentRound;
         });
         
-        console.log(`Total answers mapped: ${Object.keys(answerMap).length}`);
-        
-        const stateWithAnswers = CaseState.recordAnswers(existingCaseState, answerMap);
-        const stateWithNewSnapshot = CaseState.mergeSnapshot(stateWithAnswers, {
-          goal: updatedCategories.goal,
-          finance: updatedCategories.finance,
-          family: updatedCategories.family,
-          housing: updatedCategories.housing,
-          work: updatedCategories.work,
-          immigration: updatedCategories.immigration,
-          education: updatedCategories.education,
-          tax: updatedCategories.tax,
-          healthcare: updatedCategories.healthcare,
-          other: updatedCategories.other,
-          outstanding_clarifications: updatedCategories.outstanding_clarifications
-        });
-        
-        await CaseState.saveCaseState(stateWithNewSnapshot);
-        console.log("Case state updated with answers and new snapshot");
-      } else {
-        console.log("Case state not found for assessment:", assessmentId);
+        if (questionEvent) {
+          await eventLog.addEvent({
+            userId: assessmentId,
+            eventType: 'follow_up_answer',
+            questionText: questionEvent.questionText || '',
+            userAnswer: answer as string,
+            llmCategory: questionEvent.llmCategory || undefined,
+            llmTreatment: 'fact', // Will be updated by LLM analysis
+            llmConfidence: 0.9,
+            roundNumber: currentRound,
+            metadata: {
+              questionIndex,
+              originalQuestionId: questionEvent.id,
+              answeredAt: new Date().toISOString()
+            }
+          });
+          console.log(`✓ Logged answer ${questionIndex} for question: ${(questionEvent.questionText || '').substring(0, 50)}...`);
+        } else {
+          console.log(`✗ No question event found for index ${questionIndex} in round ${currentRound}`);
+        }
       }
+      
+      // Log LLM categorization event
+      await eventLog.addEvent({
+        userId: assessmentId,
+        eventType: 'categorization',
+        llmCategory: 'multiple',
+        llmTreatment: 'fact',
+        llmConfidence: 0.85,
+        roundNumber: currentRound,
+        metadata: {
+          updatedCategories,
+          processedAnswers: Object.keys(answers).length,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      console.log("Event logging completed for follow-up answers");
       
       const maxRounds = parseInt(existingAssessment.max_rounds || "3");
       const nextRound = currentRound + 1;
@@ -525,23 +568,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
         console.log(`Generated ${followUpResult.questions.length} questions for round ${nextRound}`);
         
-        // Add new questions to case state
-        const updatedCaseState = await CaseState.loadCaseState(assessmentId);
-        if (updatedCaseState && followUpResult.questions.length > 0) {
-          const newQuestionsWithIds = followUpResult.questions.map((q: any, index: number) => ({
-            id: `${assessmentId}-r${nextRound}-q${index + 1}`,
-            question: q.question,
-            answer: "",
-            category: q.category || "general",
-            round: nextRound,
-            timestamp: new Date().toISOString(),
-            reason: q.reason
-          }));
-          
-          const stateWithNewQuestions = CaseState.appendQuestions(updatedCaseState, newQuestionsWithIds);
-          const advancedState = CaseState.advanceRound(stateWithNewQuestions);
-          await CaseState.saveCaseState(advancedState);
-          console.log(`Added ${newQuestionsWithIds.length} questions to case state for round ${nextRound}`);
+        // Log new follow-up questions as events
+        if (followUpResult.questions.length > 0) {
+          for (let i = 0; i < followUpResult.questions.length; i++) {
+            const question = followUpResult.questions[i];
+            await eventLog.addEvent({
+              userId: assessmentId,
+              eventType: 'follow_up_question',
+              questionText: question.question,
+              llmCategory: question.category || 'general',
+              llmTreatment: 'clarification_needed',
+              llmConfidence: 0.8,
+              roundNumber: nextRound,
+              metadata: {
+                questionIndex: i,
+                reason: question.reason,
+                questionId: `${assessmentId}-r${nextRound}-q${i + 1}`
+              }
+            });
+          }
+          console.log(`Logged ${followUpResult.questions.length} new questions for round ${nextRound}`);
         }
         
         followUpResult.isComplete = false;
@@ -685,13 +731,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         followUpResult.isComplete = true;
         followUpResult.reasoning = `Assessment completed after ${currentRound} rounds of follow-up questions.`;
         
-        // Mark case state as complete
-        const finalCaseState = await CaseState.loadCaseState(assessmentId);
-        if (finalCaseState) {
-          const completedState = CaseState.markComplete(finalCaseState);
-          await CaseState.saveCaseState(completedState);
-          console.log("Case state marked as complete");
-        }
+        // Mark assessment as complete in event system
+        await eventLog.addEvent({
+          userId: assessmentId,
+          eventType: 'assessment_completed',
+          llmCategory: 'completion',
+          llmTreatment: 'fact',
+          llmConfidence: 1.0,
+          roundNumber: currentRound,
+          metadata: {
+            completedAt: new Date().toISOString(),
+            totalRounds: currentRound,
+            finalCategories: updatedCategories
+          }
+        });
+        console.log("Assessment marked as complete in event system");
       }
 
       // Update assessment in storage
@@ -1055,16 +1109,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Case State Management API routes
+  // Event State Management API routes
   app.get("/api/case-states", async (req, res) => {
     try {
-      const caseIds = await CaseState.listCaseStates();
-      res.json({ success: true, caseIds });
+      const userIds = await eventLog.getAllUserIds();
+      res.json({ success: true, caseIds: userIds });
     } catch (error) {
-      console.error("Error listing case states:", error);
+      console.error("Error listing event states:", error);
       res.status(500).json({ 
         success: false, 
-        error: error instanceof Error ? error.message : "Failed to list case states" 
+        error: error instanceof Error ? error.message : "Failed to list event states" 
       });
     }
   });
@@ -1072,21 +1126,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/case-states/:assessmentId", async (req, res) => {
     try {
       const { assessmentId } = req.params;
-      const caseState = await CaseState.loadCaseState(assessmentId);
+      const events = await eventLog.getUserEvents(assessmentId);
+      const summary = await eventLog.getUserSummary(assessmentId);
       
-      if (!caseState) {
+      if (!events || events.length === 0) {
         return res.status(404).json({ 
           success: false, 
-          error: "Case state not found" 
+          error: "Event state not found" 
         });
       }
       
-      res.json({ success: true, caseState });
+      res.json({ success: true, caseState: { events, summary } });
     } catch (error) {
-      console.error("Error loading case state:", error);
+      console.error("Error loading event state:", error);
       res.status(500).json({ 
         success: false, 
-        error: error instanceof Error ? error.message : "Failed to load case state" 
+        error: error instanceof Error ? error.message : "Failed to load event state" 
       });
     }
   });
@@ -1094,22 +1149,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/case-states/:assessmentId", async (req, res) => {
     try {
       const { assessmentId } = req.params;
-      const { maxRounds = 3 } = req.body;
       
-      // Create new case state
-      const caseState = CaseState.createNewCaseState(assessmentId, maxRounds);
-      await CaseState.saveCaseState(caseState);
+      // Initialize user with initial event
+      await eventLog.addEvent({
+        userId: assessmentId,
+        eventType: 'initial_assessment',
+        questionText: 'Assessment created',
+        userAnswer: 'System initialized',
+        llmCategory: 'system',
+        llmTreatment: 'fact',
+        llmConfidence: 1.0,
+        roundNumber: 1,
+        metadata: { created: true }
+      });
       
       res.json({ 
         success: true, 
-        caseState, 
-        message: "Case state created successfully" 
+        message: "Event state created successfully" 
       });
     } catch (error) {
-      console.error("Error creating case state:", error);
+      console.error("Error creating event state:", error);
       res.status(500).json({ 
         success: false, 
-        error: error instanceof Error ? error.message : "Failed to create case state" 
+        error: error instanceof Error ? error.message : "Failed to create event state" 
       });
     }
   });
@@ -1117,22 +1179,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/case-states/:assessmentId/snapshot", async (req, res) => {
     try {
       const { assessmentId } = req.params;
-      const { snapshot } = req.body;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
-      if (!existingState) {
-        return res.status(404).json({ 
-          success: false, 
-          error: "Case state not found" 
-        });
-      }
-      
-      const updatedState = CaseState.mergeSnapshot(existingState, snapshot);
-      await CaseState.saveCaseState(updatedState);
+      // Add event for snapshot update
+      await eventLog.addEvent({
+        userId: assessmentId,
+        eventType: 'categorization',
+        questionText: 'Snapshot update',
+        userAnswer: 'Updated',
+        llmCategory: 'system',
+        llmTreatment: 'fact',
+        llmConfidence: 1.0,
+        roundNumber: 1,
+        metadata: { snapshot: true }
+      });
       
       res.json({ 
         success: true, 
-        caseState: updatedState, 
         message: "Snapshot updated successfully" 
       });
     } catch (error) {
@@ -1149,7 +1211,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { assessmentId } = req.params;
       const { questions } = req.body;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
       if (!existingState) {
         return res.status(404).json({ 
           success: false, 
@@ -1157,8 +1218,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const updatedState = CaseState.appendQuestions(existingState, questions);
-      await CaseState.saveCaseState(updatedState);
       
       res.json({ 
         success: true, 
@@ -1179,7 +1238,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { assessmentId } = req.params;
       const { answers } = req.body;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
       if (!existingState) {
         return res.status(404).json({ 
           success: false, 
@@ -1187,8 +1245,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const updatedState = CaseState.recordAnswers(existingState, answers);
-      await CaseState.saveCaseState(updatedState);
       
       res.json({ 
         success: true, 
@@ -1208,7 +1264,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { assessmentId } = req.params;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
       if (!existingState) {
         return res.status(404).json({ 
           success: false, 
@@ -1216,8 +1271,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const updatedState = CaseState.advanceRound(existingState);
-      await CaseState.saveCaseState(updatedState);
       
       res.json({ 
         success: true, 
@@ -1237,7 +1290,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { assessmentId } = req.params;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
       if (!existingState) {
         return res.status(404).json({ 
           success: false, 
@@ -1245,8 +1297,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const updatedState = CaseState.markComplete(existingState);
-      await CaseState.saveCaseState(updatedState);
       
       res.json({ 
         success: true, 
@@ -1266,7 +1316,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { assessmentId } = req.params;
       
-      const caseState = await CaseState.loadCaseState(assessmentId);
       if (!caseState) {
         return res.status(404).json({ 
           success: false, 
@@ -1274,7 +1323,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const llmFormat = CaseState.formatForLLM(caseState);
       res.json({ success: true, data: llmFormat });
     } catch (error) {
       console.error("Error formatting for LLM:", error);
@@ -1287,6 +1335,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Seed pricing packages on startup
   await seedPricingPackages();
+
+  // Setup event routes for append-only database viewing
+  setupEventRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

@@ -13,6 +13,7 @@ import ErrorDebugPage from "@/pages/error-debug";
 import PricingPackagesPage from "@/pages/pricing-packages";
 import LlmDebugPage from "@/pages/llm-debug";
 import CaseStatesPage from "@/pages/case-states";
+import EventLogsPage from "@/pages/event-logs";
 
 function Router() {
   return (
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/llm-logs" component={LlmLogsPage} />
       <Route path="/pricing-packages" component={PricingPackagesPage} />
       <Route path="/case-states" component={CaseStatesPage} />
+      <Route path="/event-logs" component={EventLogsPage} />
       <Route path="/error-debug" component={ErrorDebugPage} />
       <Route path="/llm-debug" component={LlmDebugPage} />
       <Route component={NotFound} />
