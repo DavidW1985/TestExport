@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, real, integer, boolean, jsonb, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, real, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -136,61 +136,6 @@ export const assessmentPackageMatches = pgTable("assessment_package_matches", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Append-only event log for user interactions - immutable audit trail
-export const userEvents = pgTable("user_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(), // Can be assessment ID or actual user ID
-  eventId: integer("event_id").notNull(), // Sequential event number for this user
-  timestamp: timestamp("timestamp").defaultNow().notNull(),
-  
-  // Event details
-  eventType: text("event_type").notNull(), // 'initial_assessment', 'follow_up_answer', 'categorization'
-  questionType: text("question_type"), // Type of question answered (if applicable)
-  questionText: text("question_text"), // Actual question asked
-  userAnswer: text("user_answer"), // Raw user input
-  
-  // LLM categorization
-  llmCategory: text("llm_category"), // Which category LLM assigned this to
-  llmTreatment: text("llm_treatment"), // 'fact', 'unknown', 'contradictory', etc.
-  llmConfidence: real("llm_confidence"), // 0.0 to 1.0 confidence score
-  
-  // Context
-  roundNumber: integer("round_number"), // Which follow-up round (if applicable)
-  metadata: jsonb("metadata"), // Additional structured data
-  
-  // Immutability constraint - never update, only insert
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Derived state view - computed from events, not stored as authoritative
-export const userSummaries = pgTable("user_summaries", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().unique(),
-  
-  // Current known facts (derived from events)
-  currentGoal: text("current_goal"),
-  currentFinance: text("current_finance"),
-  currentFamily: text("current_family"),
-  currentHousing: text("current_housing"),
-  currentWork: text("current_work"),
-  currentImmigration: text("current_immigration"),
-  currentEducation: text("current_education"),
-  currentTax: text("current_tax"),
-  currentHealthcare: text("current_healthcare"),
-  currentOther: text("current_other"),
-  
-  // Tracking
-  totalEvents: integer("total_events").notNull().default(0),
-  lastEventId: integer("last_event_id"),
-  currentRound: integer("current_round").default(1),
-  isComplete: boolean("is_complete").default(false),
-  
-  // Timestamps
-  firstEventAt: timestamp("first_event_at"),
-  lastEventAt: timestamp("last_event_at"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -262,24 +207,3 @@ export const insertAssessmentPackageMatchSchema = createInsertSchema(assessmentP
 });
 export type InsertAssessmentPackageMatch = z.infer<typeof insertAssessmentPackageMatchSchema>;
 export type AssessmentPackageMatch = typeof assessmentPackageMatches.$inferSelect;
-
-// Event log schema - only allow required fields for immutable events
-export const insertUserEventSchema = createInsertSchema(userEvents).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  userId: z.string().min(1, "User ID is required"),
-  eventId: z.number().int().positive("Event ID must be positive"),
-  eventType: z.enum(['initial_assessment', 'follow_up_answer', 'categorization', 'llm_analysis']),
-  llmTreatment: z.enum(['fact', 'unknown', 'contradictory', 'clarification_needed']).optional(),
-});
-
-export const insertUserSummarySchema = createInsertSchema(userSummaries).omit({
-  id: true,
-  updatedAt: true,
-});
-
-export type UserEvent = typeof userEvents.$inferSelect;
-export type InsertUserEvent = z.infer<typeof insertUserEventSchema>;
-export type UserSummary = typeof userSummaries.$inferSelect;
-export type InsertUserSummary = z.infer<typeof insertUserSummarySchema>;
