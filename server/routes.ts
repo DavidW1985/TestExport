@@ -556,6 +556,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const maxRounds = parseInt(existingAssessment.max_rounds || "3");
       const nextRound = currentRound + 1;
       console.log(`Current: ${currentRound}, Next: ${nextRound}, Max: ${maxRounds}`);
+      
+      // CRITICAL TRANSITION DEBUG - Round progression
+      console.log("=== ROUND TRANSITION DEBUG (Background Processing) ===");
+      console.log(`existingAssessment.current_round: "${existingAssessment.current_round}"`);
+      console.log(`currentRound (parsed): ${currentRound}`);
+      console.log(`nextRound (calculated): ${nextRound}`);
+      console.log(`maxRounds (parsed): ${maxRounds}`);
+      console.log(`Will generate new questions: ${currentRound < maxRounds}`);
+      console.log("==============================");
 
       let followUpResult: { questions: any[], isComplete: boolean, reasoning: string } = { 
         questions: [], 
@@ -565,8 +574,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (currentRound < maxRounds) {
         console.log(`Generating follow-up questions for round ${nextRound}`);
+        
+        // CRITICAL DEBUG - Before generateFollowUpQuestions
+        console.log("=== BEFORE GENERATE FOLLOW-UP QUESTIONS ===");
+        console.log(`updatedCategories keys:`, Object.keys(updatedCategories));
+        console.log(`nextRound:`, nextRound);
+        console.log(`maxRounds:`, maxRounds);
+        console.log(`assessmentId:`, assessmentId);
+        console.log("===============================================");
+        
         followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
+        
+        // CRITICAL DEBUG - After generateFollowUpQuestions
+        console.log("=== AFTER GENERATE FOLLOW-UP QUESTIONS ===");
         console.log(`Generated ${followUpResult.questions.length} questions for round ${nextRound}`);
+        console.log(`followUpResult.isComplete:`, followUpResult.isComplete);
+        console.log(`followUpResult.questions type:`, typeof followUpResult.questions);
+        console.log("==============================================");
         
         // Log new follow-up questions as events
         if (followUpResult.questions.length > 0) {
@@ -634,11 +658,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       };
 
+      // CRITICAL DEBUG - Before database update
+      console.log("=== BEFORE DATABASE UPDATE ===");
+      console.log(`assessmentId:`, assessmentId);
+      console.log(`updates.current_round:`, updates.current_round);
+      console.log(`updates.is_complete:`, updates.is_complete);
+      console.log(`updates keys:`, Object.keys(updates));
+      console.log("==============================");
+      
       await storage.updateAssessment(assessmentId, updates);
+      
+      console.log("=== AFTER DATABASE UPDATE ===");
       console.log(`Assessment ${assessmentId} updated successfully for round ${nextRound}`);
+      console.log("==============================");
 
     } catch (error) {
-      console.error('Background processing error:', error);
+      console.error('=== BACKGROUND PROCESSING ERROR ===');
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
+      console.error('Assessment ID at time of error:', assessmentId);
+      console.error('=====================================');
+      
       await storage.updateAssessment(assessmentId, {
         processing_status: 'error',
         processing_error: error instanceof Error ? error.message : 'Unknown error'
