@@ -7,7 +7,8 @@ import { PromptManager, type PromptConfig } from "./prompts";
 import { seedPricingPackages } from "./seed-packages";
 import { matchUserToPackage, getPackageMatchForAssessment } from "./package-matching";
 import { z } from "zod";
-import * as CaseState from "./case-state";
+import { eventLog } from "./event-log";
+import { setupEventRoutes } from "./event-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -1313,6 +1314,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Seed pricing packages on startup
   await seedPricingPackages();
+
+  // Setup event routes for append-only database viewing
+  setupEventRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
