@@ -5,7 +5,7 @@ import { eq, desc, asc, max, and } from "drizzle-orm";
 
 export interface UserEventInput {
   userId: string;
-  eventType: 'initial_assessment' | 'follow_up_answer' | 'categorization' | 'llm_analysis';
+  eventType: 'initial_assessment' | 'follow_up_question' | 'follow_up_answer' | 'categorization' | 'llm_analysis' | 'assessment_completed';
   questionType?: string;
   questionText?: string;
   userAnswer?: string;

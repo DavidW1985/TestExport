@@ -275,22 +275,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Debug endpoint to get list of assessments for selection
+  // Debug endpoint to get list of users with events  
   app.get("/api/debug/assessments", async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 50;
-      const assessments = await storage.getRecentAssessments(limit);
+      const userIds = await eventLog.getAllUserIds();
       
-      const assessmentList = assessments.map(assessment => ({
-        id: assessment.id,
-        displayName: `${assessment.destination || 'Unknown'} - ${new Date(assessment.submittedAt).toLocaleString()}`,
-        destination: assessment.destination,
-        companions: assessment.companions,
-        timing: assessment.timing,
-        currentRound: assessment.current_round,
-        isComplete: assessment.is_complete === "true",
-        submittedAt: assessment.submittedAt,
-        hasLlmLogs: true // We'll assume all assessments have logs for now
+      const assessmentList = await Promise.all(userIds.map(async (userId) => {
+        const stats = await eventLog.getUserStats(userId);
+        return {
+          id: userId,
+          displayName: `${userId.split('-')[0]} - ${stats.totalEvents} events`,
+          currentRound: stats.currentRound,
+          isComplete: stats.isComplete,
+          submittedAt: stats.firstEvent,
+          hasLlmLogs: true
+        };
       }));
       
       res.json({ success: true, assessments: assessmentList });
@@ -510,17 +509,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Get the original question from the initial assessment events
         const questionEvents = await eventLog.getEventsByType(assessmentId, 'follow_up_question');
-        const questionEvent = questionEvents.find(event => 
-          event.metadata?.questionIndex === questionIndex && event.roundNumber === currentRound
-        );
+        const questionEvent = questionEvents.find(event => {
+          const metadata = event.metadata as any;
+          return metadata?.questionIndex === questionIndex && event.roundNumber === currentRound;
+        });
         
         if (questionEvent) {
           await eventLog.addEvent({
             userId: assessmentId,
             eventType: 'follow_up_answer',
-            questionText: questionEvent.questionText,
+            questionText: questionEvent.questionText || '',
             userAnswer: answer as string,
-            llmCategory: questionEvent.llmCategory,
+            llmCategory: questionEvent.llmCategory || undefined,
             llmTreatment: 'fact', // Will be updated by LLM analysis
             llmConfidence: 0.9,
             roundNumber: currentRound,
@@ -530,7 +530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               answeredAt: new Date().toISOString()
             }
           });
-          console.log(`✓ Logged answer ${questionIndex} for question: ${questionEvent.questionText.substring(0, 50)}...`);
+          console.log(`✓ Logged answer ${questionIndex} for question: ${(questionEvent.questionText || '').substring(0, 50)}...`);
         } else {
           console.log(`✗ No question event found for index ${questionIndex} in round ${currentRound}`);
         }
@@ -1109,16 +1109,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Case State Management API routes
+  // Event State Management API routes
   app.get("/api/case-states", async (req, res) => {
     try {
-      const caseIds = await CaseState.listCaseStates();
-      res.json({ success: true, caseIds });
+      const userIds = await eventLog.getAllUserIds();
+      res.json({ success: true, caseIds: userIds });
     } catch (error) {
-      console.error("Error listing case states:", error);
+      console.error("Error listing event states:", error);
       res.status(500).json({ 
         success: false, 
-        error: error instanceof Error ? error.message : "Failed to list case states" 
+        error: error instanceof Error ? error.message : "Failed to list event states" 
       });
     }
   });
@@ -1126,21 +1126,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/case-states/:assessmentId", async (req, res) => {
     try {
       const { assessmentId } = req.params;
-      const caseState = await CaseState.loadCaseState(assessmentId);
+      const events = await eventLog.getUserEvents(assessmentId);
+      const summary = await eventLog.getUserSummary(assessmentId);
       
-      if (!caseState) {
+      if (!events || events.length === 0) {
         return res.status(404).json({ 
           success: false, 
-          error: "Case state not found" 
+          error: "Event state not found" 
         });
       }
       
-      res.json({ success: true, caseState });
+      res.json({ success: true, caseState: { events, summary } });
     } catch (error) {
-      console.error("Error loading case state:", error);
+      console.error("Error loading event state:", error);
       res.status(500).json({ 
         success: false, 
-        error: error instanceof Error ? error.message : "Failed to load case state" 
+        error: error instanceof Error ? error.message : "Failed to load event state" 
       });
     }
   });
@@ -1148,22 +1149,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/case-states/:assessmentId", async (req, res) => {
     try {
       const { assessmentId } = req.params;
-      const { maxRounds = 3 } = req.body;
       
-      // Create new case state
-      const caseState = CaseState.createNewCaseState(assessmentId, maxRounds);
-      await CaseState.saveCaseState(caseState);
+      // Initialize user with initial event
+      await eventLog.addEvent({
+        userId: assessmentId,
+        eventType: 'initial_assessment',
+        questionText: 'Assessment created',
+        userAnswer: 'System initialized',
+        llmCategory: 'system',
+        llmTreatment: 'fact',
+        llmConfidence: 1.0,
+        roundNumber: 1,
+        metadata: { created: true }
+      });
       
       res.json({ 
         success: true, 
-        caseState, 
-        message: "Case state created successfully" 
+        message: "Event state created successfully" 
       });
     } catch (error) {
-      console.error("Error creating case state:", error);
+      console.error("Error creating event state:", error);
       res.status(500).json({ 
         success: false, 
-        error: error instanceof Error ? error.message : "Failed to create case state" 
+        error: error instanceof Error ? error.message : "Failed to create event state" 
       });
     }
   });
@@ -1171,22 +1179,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/case-states/:assessmentId/snapshot", async (req, res) => {
     try {
       const { assessmentId } = req.params;
-      const { snapshot } = req.body;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
-      if (!existingState) {
-        return res.status(404).json({ 
-          success: false, 
-          error: "Case state not found" 
-        });
-      }
-      
-      const updatedState = CaseState.mergeSnapshot(existingState, snapshot);
-      await CaseState.saveCaseState(updatedState);
+      // Add event for snapshot update
+      await eventLog.addEvent({
+        userId: assessmentId,
+        eventType: 'categorization',
+        questionText: 'Snapshot update',
+        userAnswer: 'Updated',
+        llmCategory: 'system',
+        llmTreatment: 'fact',
+        llmConfidence: 1.0,
+        roundNumber: 1,
+        metadata: { snapshot: true }
+      });
       
       res.json({ 
         success: true, 
-        caseState: updatedState, 
         message: "Snapshot updated successfully" 
       });
     } catch (error) {
@@ -1203,7 +1211,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { assessmentId } = req.params;
       const { questions } = req.body;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
       if (!existingState) {
         return res.status(404).json({ 
           success: false, 
@@ -1211,8 +1218,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const updatedState = CaseState.appendQuestions(existingState, questions);
-      await CaseState.saveCaseState(updatedState);
       
       res.json({ 
         success: true, 
@@ -1233,7 +1238,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { assessmentId } = req.params;
       const { answers } = req.body;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
       if (!existingState) {
         return res.status(404).json({ 
           success: false, 
@@ -1241,8 +1245,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const updatedState = CaseState.recordAnswers(existingState, answers);
-      await CaseState.saveCaseState(updatedState);
       
       res.json({ 
         success: true, 
@@ -1262,7 +1264,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { assessmentId } = req.params;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
       if (!existingState) {
         return res.status(404).json({ 
           success: false, 
@@ -1270,8 +1271,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const updatedState = CaseState.advanceRound(existingState);
-      await CaseState.saveCaseState(updatedState);
       
       res.json({ 
         success: true, 
@@ -1291,7 +1290,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { assessmentId } = req.params;
       
-      const existingState = await CaseState.loadCaseState(assessmentId);
       if (!existingState) {
         return res.status(404).json({ 
           success: false, 
@@ -1299,8 +1297,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const updatedState = CaseState.markComplete(existingState);
-      await CaseState.saveCaseState(updatedState);
       
       res.json({ 
         success: true, 
@@ -1320,7 +1316,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { assessmentId } = req.params;
       
-      const caseState = await CaseState.loadCaseState(assessmentId);
       if (!caseState) {
         return res.status(404).json({ 
           success: false, 
@@ -1328,7 +1323,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const llmFormat = CaseState.formatForLLM(caseState);
       res.json({ success: true, data: llmFormat });
     } catch (error) {
       console.error("Error formatting for LLM:", error);
