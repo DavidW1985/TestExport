@@ -32,7 +32,7 @@ export default function FollowUpPage() {
   );
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [placeholderCache, setPlaceholderCache] = useState<Record<string, string>>({});
+
 
   if (!assessmentState) {
     setLocation('/');
@@ -149,82 +149,11 @@ export default function FollowUpPage() {
     submitFollowUpMutation.mutate(submissionData);
   };
 
-  // Track which questions are currently being loaded to prevent duplicates
-  const [loadingPlaceholders, setLoadingPlaceholders] = useState<Set<string>>(new Set());
 
-  // Generate LLM-powered placeholder text
-  const getPlaceholderForQuestion = async (question: string): Promise<string> => {
-    // Check cache first
-    if (placeholderCache[question]) {
-      return placeholderCache[question];
-    }
 
-    // Check if already loading to prevent duplicate requests
-    if (loadingPlaceholders.has(question)) {
-      return "Loading suggestion...";
-    }
-
-    try {
-      // Mark as loading
-      setLoadingPlaceholders(prev => new Set([...prev, question]));
-
-      const response = await fetch('/api/placeholders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate placeholder');
-      }
-
-      const data = await response.json();
-      const placeholder = data.placeholder || "Provide specific details about your situation...";
-      
-      // Cache the result and remove from loading
-      setPlaceholderCache(prev => ({
-        ...prev,
-        [question]: placeholder
-      }));
-
-      setLoadingPlaceholders(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(question);
-        return newSet;
-      });
-
-      return placeholder;
-    } catch (error) {
-      console.error('Error generating placeholder:', error);
-      
-      // Remove from loading on error
-      setLoadingPlaceholders(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(question);
-        return newSet;
-      });
-
-      return "Provide specific details about your situation...";
-    }
-  };
-
-  // Load all placeholders at once to prevent re-render issues
-  useEffect(() => {
-    if (followUpQuestions && followUpQuestions.length > 0) {
-      followUpQuestions.forEach((question, index) => {
-        const questionText = question.question;
-        // Only load if not already cached or loading
-        if (!placeholderCache[questionText]) {
-          console.log(`Loading placeholder for question ${index}: ${questionText.substring(0, 50)}...`);
-          getPlaceholderForQuestion(questionText);
-        }
-      });
-    }
-  }, [followUpQuestions]);
-
-  // Get placeholder text synchronously from cache
+  // Simple placeholder function 
   const getPlaceholder = (question: string): string => {
-    return placeholderCache[question] || "Provide specific details about your situation...";
+    return "Provide specific details about your situation...";
   };
 
   // Show error details if there's an error
