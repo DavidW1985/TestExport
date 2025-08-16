@@ -159,39 +159,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         followUpResult.reasoning = "Assessment complete - no additional questions needed.";
       }
 
-      // Step 5: Create case state for tracking
-      console.log("Creating case state for assessment:", assessment.id);
-      const caseState = CaseState.createNewCaseState(assessment.id, 3);
+      // Step 5: Log initial assessment in event system
+      console.log("Creating event log entry for assessment:", assessment.id);
       
-      // Update snapshot with initial categorized data
-      const updatedCaseState = CaseState.mergeSnapshot(caseState, {
-        goal: categorizedData.goal,
-        finance: categorizedData.finance,
-        family: categorizedData.family,
-        housing: categorizedData.housing,
-        work: categorizedData.work,
-        immigration: categorizedData.immigration,
-        education: categorizedData.education,
-        tax: categorizedData.tax,
-        healthcare: categorizedData.healthcare,
-        other: categorizedData.other,
-        outstanding_clarifications: categorizedData.outstanding_clarifications
+      // Log initial assessment event in append-only database
+      await eventLog.addEvent({
+        userId: assessment.id,
+        eventType: 'initial_assessment',
+        questionText: `Initial Assessment: Moving from ${movingFrom} to ${destination}`,
+        userAnswer: `Context: ${validatedData.context}`,
+        llmCategory: 'goal',
+        llmTreatment: 'fact',
+        llmConfidence: 1.0,
+        roundNumber: 1,
+        metadata: {
+          movingFrom,
+          movingTo: destination,
+          originalFormat: 'simplified_3_questions',
+          categorizedData,
+          followUpQuestions: followUpResult.questions
+        }
       });
       
-      // Add initial questions to Q&A log with proper IDs
-      const questionsWithIds = followUpResult.questions.map((q: any, index: number) => ({
-        id: `${assessment.id}-r1-q${index + 1}`,
-        question: q.question,
-        answer: "",
-        category: q.category || "general",
-        round: 1,
-        timestamp: new Date().toISOString(),
-        reason: q.reason
-      }));
+      // Log each follow-up question as individual events
+      for (let i = 0; i < followUpResult.questions.length; i++) {
+        const question = followUpResult.questions[i];
+        await eventLog.addEvent({
+          userId: assessment.id,
+          eventType: 'follow_up_question',
+          questionText: question.question,
+          llmCategory: question.category || 'general',
+          llmTreatment: 'clarification_needed',
+          llmConfidence: 0.8,
+          roundNumber: 1,
+          metadata: {
+            questionIndex: i,
+            reason: question.reason,
+            questionId: `${assessment.id}-r1-q${i + 1}`
+          }
+        });
+      }
       
-      const finalCaseState = CaseState.appendQuestions(updatedCaseState, questionsWithIds);
-      await CaseState.saveCaseState(finalCaseState);
-      console.log("Case state created and saved successfully");
+      console.log("Event log entries created successfully");
 
       // Step 6: Update assessment with categorized data
       const updatedAssessment = await storage.updateAssessment(assessment.id, {
