@@ -925,6 +925,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function for safe JSON parsing
+  function safeJsonParse(data: string): any {
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      // If it's not valid JSON, return as plain text
+      return data;
+    }
+  }
+
   // LLM Logging API endpoints
   app.get("/api/llm-logs", async (req, res) => {
     try {
@@ -935,8 +946,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         logs: logs.map(log => ({
           ...log,
-          inputData: JSON.parse(log.inputData),
-          parsedResult: log.parsedResult ? JSON.parse(log.parsedResult) : null
+          inputData: safeJsonParse(log.inputData),
+          parsedResult: safeJsonParse(log.parsedResult)
         }))
       });
     } catch (error) {
@@ -954,8 +965,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         logs: logs.map(log => ({
           ...log,
-          inputData: JSON.parse(log.inputData),
-          parsedResult: log.parsedResult ? JSON.parse(log.parsedResult) : null
+          inputData: safeJsonParse(log.inputData),
+          parsedResult: safeJsonParse(log.parsedResult)
         }))
       });
     } catch (error) {
