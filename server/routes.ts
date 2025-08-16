@@ -500,51 +500,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedCategories = await updateCategoriesWithFollowUp(currentCategories, answers, assessmentId, currentRound);
       console.log(`Categories updated successfully for round ${currentRound}`);
       
-      // Update case state with answers and new snapshot
-      const existingCaseState = await CaseState.loadCaseState(assessmentId);
-      if (existingCaseState) {
-        console.log("Updating case state with follow-up answers");
+      // Log follow-up answers in event system
+      console.log("Logging follow-up answers in event system");
+      
+      // Log each answer as a separate event
+      for (const [index, answer] of Object.entries(answers)) {
+        const questionIndex = parseInt(index);
+        console.log(`Logging answer ${questionIndex}: "${answer}"`);
         
-        // Record answers (map from question index to actual question ID in case state)
-        const answerMap: Record<string, string> = {};
-        const questionsForCurrentRound = existingCaseState.qa_log.filter(q => q.round === currentRound);
-        console.log(`Found ${questionsForCurrentRound.length} questions for round ${currentRound}`);
+        // Get the original question from the initial assessment events
+        const questionEvents = await eventLog.getEventsByType(assessmentId, 'follow_up_question');
+        const questionEvent = questionEvents.find(event => 
+          event.metadata?.questionIndex === questionIndex && event.roundNumber === currentRound
+        );
         
-        Object.entries(answers).forEach(([index, answer]) => {
-          const questionIndex = parseInt(index);
-          console.log(`Processing answer ${questionIndex}: "${answer}"`);
-          
-          if (questionsForCurrentRound[questionIndex]) {
-            const questionId = questionsForCurrentRound[questionIndex].id;
-            answerMap[questionId] = answer as string;
-            console.log(`✓ Mapped answer ${questionIndex} to question ID: ${questionId} = "${(answer as string).substring(0, 50)}..."`);
-          } else {
-            console.log(`✗ No question found at index ${questionIndex} for round ${currentRound}`);
-          }
-        });
-        
-        console.log(`Total answers mapped: ${Object.keys(answerMap).length}`);
-        
-        const stateWithAnswers = CaseState.recordAnswers(existingCaseState, answerMap);
-        const stateWithNewSnapshot = CaseState.mergeSnapshot(stateWithAnswers, {
-          goal: updatedCategories.goal,
-          finance: updatedCategories.finance,
-          family: updatedCategories.family,
-          housing: updatedCategories.housing,
-          work: updatedCategories.work,
-          immigration: updatedCategories.immigration,
-          education: updatedCategories.education,
-          tax: updatedCategories.tax,
-          healthcare: updatedCategories.healthcare,
-          other: updatedCategories.other,
-          outstanding_clarifications: updatedCategories.outstanding_clarifications
-        });
-        
-        await CaseState.saveCaseState(stateWithNewSnapshot);
-        console.log("Case state updated with answers and new snapshot");
-      } else {
-        console.log("Case state not found for assessment:", assessmentId);
+        if (questionEvent) {
+          await eventLog.addEvent({
+            userId: assessmentId,
+            eventType: 'follow_up_answer',
+            questionText: questionEvent.questionText,
+            userAnswer: answer as string,
+            llmCategory: questionEvent.llmCategory,
+            llmTreatment: 'fact', // Will be updated by LLM analysis
+            llmConfidence: 0.9,
+            roundNumber: currentRound,
+            metadata: {
+              questionIndex,
+              originalQuestionId: questionEvent.id,
+              answeredAt: new Date().toISOString()
+            }
+          });
+          console.log(`✓ Logged answer ${questionIndex} for question: ${questionEvent.questionText.substring(0, 50)}...`);
+        } else {
+          console.log(`✗ No question event found for index ${questionIndex} in round ${currentRound}`);
+        }
       }
+      
+      // Log LLM categorization event
+      await eventLog.addEvent({
+        userId: assessmentId,
+        eventType: 'categorization',
+        llmCategory: 'multiple',
+        llmTreatment: 'fact',
+        llmConfidence: 0.85,
+        roundNumber: currentRound,
+        metadata: {
+          updatedCategories,
+          processedAnswers: Object.keys(answers).length,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      console.log("Event logging completed for follow-up answers");
       
       const maxRounds = parseInt(existingAssessment.max_rounds || "3");
       const nextRound = currentRound + 1;
@@ -561,23 +568,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         followUpResult = await generateFollowUpQuestions(updatedCategories, nextRound, maxRounds, [], assessmentId);
         console.log(`Generated ${followUpResult.questions.length} questions for round ${nextRound}`);
         
-        // Add new questions to case state
-        const updatedCaseState = await CaseState.loadCaseState(assessmentId);
-        if (updatedCaseState && followUpResult.questions.length > 0) {
-          const newQuestionsWithIds = followUpResult.questions.map((q: any, index: number) => ({
-            id: `${assessmentId}-r${nextRound}-q${index + 1}`,
-            question: q.question,
-            answer: "",
-            category: q.category || "general",
-            round: nextRound,
-            timestamp: new Date().toISOString(),
-            reason: q.reason
-          }));
-          
-          const stateWithNewQuestions = CaseState.appendQuestions(updatedCaseState, newQuestionsWithIds);
-          const advancedState = CaseState.advanceRound(stateWithNewQuestions);
-          await CaseState.saveCaseState(advancedState);
-          console.log(`Added ${newQuestionsWithIds.length} questions to case state for round ${nextRound}`);
+        // Log new follow-up questions as events
+        if (followUpResult.questions.length > 0) {
+          for (let i = 0; i < followUpResult.questions.length; i++) {
+            const question = followUpResult.questions[i];
+            await eventLog.addEvent({
+              userId: assessmentId,
+              eventType: 'follow_up_question',
+              questionText: question.question,
+              llmCategory: question.category || 'general',
+              llmTreatment: 'clarification_needed',
+              llmConfidence: 0.8,
+              roundNumber: nextRound,
+              metadata: {
+                questionIndex: i,
+                reason: question.reason,
+                questionId: `${assessmentId}-r${nextRound}-q${i + 1}`
+              }
+            });
+          }
+          console.log(`Logged ${followUpResult.questions.length} new questions for round ${nextRound}`);
         }
         
         followUpResult.isComplete = false;
@@ -721,13 +731,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         followUpResult.isComplete = true;
         followUpResult.reasoning = `Assessment completed after ${currentRound} rounds of follow-up questions.`;
         
-        // Mark case state as complete
-        const finalCaseState = await CaseState.loadCaseState(assessmentId);
-        if (finalCaseState) {
-          const completedState = CaseState.markComplete(finalCaseState);
-          await CaseState.saveCaseState(completedState);
-          console.log("Case state marked as complete");
-        }
+        // Mark assessment as complete in event system
+        await eventLog.addEvent({
+          userId: assessmentId,
+          eventType: 'assessment_completed',
+          llmCategory: 'completion',
+          llmTreatment: 'fact',
+          llmConfidence: 1.0,
+          roundNumber: currentRound,
+          metadata: {
+            completedAt: new Date().toISOString(),
+            totalRounds: currentRound,
+            finalCategories: updatedCategories
+          }
+        });
+        console.log("Assessment marked as complete in event system");
       }
 
       // Update assessment in storage
