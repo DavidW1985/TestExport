@@ -166,7 +166,11 @@ export default function FollowUpPage() {
 
     try {
       // Mark as loading
-      setLoadingPlaceholders(prev => new Set([...prev, question]));
+      setLoadingPlaceholders(prev => {
+        const newSet = new Set(prev);
+        newSet.add(question);
+        return newSet;
+      });
 
       const response = await fetch('/api/placeholders', {
         method: 'POST',
