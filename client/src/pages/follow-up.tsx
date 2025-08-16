@@ -26,16 +26,33 @@ export default function FollowUpPage() {
   const [showError, setShowError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<any>(null);
 
-  // Get assessment state from session storage
-  const assessmentState: AssessmentState | null = JSON.parse(
-    sessionStorage.getItem('assessmentState') || 'null'
-  );
+  // Get assessment state from session storage with error handling
+  const [assessmentState] = useState<AssessmentState | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('assessmentState');
+      if (!stored || stored === 'null') return null;
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error('Error parsing assessmentState:', error);
+      sessionStorage.removeItem('assessmentState');
+      return null;
+    }
+  });
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [placeholderCache, setPlaceholderCache] = useState<Record<string, string>>({});
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Safe redirect with transition state
+  const safeRedirect = useCallback((path: string) => {
+    if (!isTransitioning) {
+      setIsTransitioning(true);
+      setTimeout(() => setLocation(path), 10);
+    }
+  }, [isTransitioning, setLocation]);
 
   if (!assessmentState) {
-    setLocation('/');
+    safeRedirect('/');
     return null;
   }
 
@@ -43,7 +60,7 @@ export default function FollowUpPage() {
   if (!assessmentState.followUpQuestions || !Array.isArray(assessmentState.followUpQuestions) || assessmentState.followUpQuestions.length === 0) {
     console.error('Missing followUpQuestions in assessment state:', assessmentState);
     sessionStorage.removeItem('assessmentState'); // Clean up corrupted state
-    setLocation('/');
+    safeRedirect('/');
     return null;
   }
 
@@ -94,15 +111,26 @@ export default function FollowUpPage() {
         sessionStorage.setItem('completedAssessment', JSON.stringify(data));
         setLocation('/summary');
       } else {
+        // Validate new data before updating state
+        if (!data.followUpQuestions || !Array.isArray(data.followUpQuestions) || data.followUpQuestions.length === 0) {
+          console.error('Invalid followUpQuestions received:', data);
+          setLocation('/');
+          return;
+        }
+        
         const newState = {
           ...assessmentState,
           followUpQuestions: data.followUpQuestions,
           currentRound: data.currentRound,
           categorizedData: data.categorizedData
         };
+        
+        // Update state atomically
         sessionStorage.setItem('assessmentState', JSON.stringify(newState));
         setAnswers({});
-        window.scrollTo(0, 0);
+        
+        // Force a small delay to ensure state is stable before scrolling
+        setTimeout(() => window.scrollTo(0, 0), 50);
       }
     },
     onError: (error) => {
